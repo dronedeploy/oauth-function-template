@@ -1,0 +1,20 @@
+{
+  "authProvider": "climate",
+  "callbackUrl": "http://localhost:8010/clay-test/us-central1/climate/auth/callback",
+  "credentials": {
+    "client": {
+      "id": "redacted - see password vault",
+      "secret": "redacted - see password vault"
+    },
+    "auth": {
+      "authorizeHost": "https://climate.com",
+      "authorizePath": "/static/app-login/index.html",
+      "tokenHost": "https://api.climate.com",
+      "tokenPath": "/api/oauth/token"
+    }
+  },
+  "authorizeUrl": {
+    "scope": "fields:read",
+    "page": "oidcauthn"
+  }
+}
