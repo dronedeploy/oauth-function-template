@@ -7,7 +7,12 @@ const fs = require('fs');
 let conf = require('./oauth-config');
 
 const FUNCTION_ROOT = 'ddauth';
-const CALLBACK_URL = `http://localhost:8010/clay-test/us-central1/${FUNCTION_ROOT}/auth/callback`
+
+// Comment for local dev
+const CALLBACK_URL = `https://us-central1-dronedeploy-functions-0.cloudfunctions.net/${FUNCTION_ROOT}/auth/callback`
+
+// Uncomment for local dev
+// const CALLBACK_URL = `http://localhost:8010/dronedeploy-functions-0/us-central1/${FUNCTION_ROOT}/auth/callback`
 const PROVIDERS_DIRECTORY = './providers';
 
 const md5Hash = (original) => { return crypto.createHash('md5').update(original).digest('hex'); };
@@ -29,6 +34,9 @@ const getProviders = () => {
   return providers;
 }
 
+// In order to have providers loaded dynamically, we would likely
+// need to replace references to PROVIDERS with a getProviders()
+// call so we always ensure we have the latest
 const PROVIDERS = getProviders();
 
 exports.loadConfig = (provider) => {
@@ -70,4 +78,6 @@ exports.credentials = () => {return conf.get('credentials');};
 exports.authorizeUrl = () => {return conf.get('authorizeUrl');};
 
 // These could be function-based urls or DD app-base urls or really any url
-exports.successUrl = `http://localhost:8010/clay-test/us-central1/${FUNCTION_ROOT}/home`;
+// Swap the commented url for local dev
+exports.successUrl = `https://us-central1-dronedeploy-functions-0.cloudfunctions.net/${FUNCTION_ROOT}//home`;
+// exports.successUrl = `http://localhost:8010/dronedeploy-functions-0/us-central1/${FUNCTION_ROOT}/home`
