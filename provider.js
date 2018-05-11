@@ -2,18 +2,37 @@
 
 const base64Url = require('base64url');
 const crypto = require('crypto');
+const fs = require('fs');
 
 let conf = require('./oauth-config');
 
 const FUNCTION_ROOT = 'ddauth';
 const CALLBACK_URL = `http://localhost:8010/clay-test/us-central1/${FUNCTION_ROOT}/auth/callback`
-
-const PROVIDERS = ['climate'];
+const PROVIDERS_DIRECTORY = './providers';
 
 const md5Hash = (original) => { return crypto.createHash('md5').update(original).digest('hex'); };
 
+// This function should be changed later to read from a Google Cloud
+// Storage bucket instead. Doing so would allow us to not have to
+// redeploy this function any time a new auth provider is needed
+const getProviders = () => {
+  var providers = [];
+
+  fs.readdirSync(PROVIDERS_DIRECTORY).forEach((entry) => {
+    // Incase we nest directories in the future
+    if (!fs.statSync(`${PROVIDERS_DIRECTORY}/${entry}`).isDirectory()) {
+      // Strip the file extension
+      providers.push(entry.replace(/\.[^/.]+$/, ""));
+    }
+  });
+
+  return providers;
+}
+
+const PROVIDERS = getProviders();
+
 exports.loadConfig = (provider) => {
-  conf.loadFile(`./providers/${provider}.json`);
+  conf.loadFile(`${PROVIDERS_DIRECTORY}/${provider}.json`);
   conf.set('authorizeUrl.redirect_uri', CALLBACK_URL);
 }
 
