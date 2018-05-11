@@ -13,13 +13,13 @@ var config = convict({
         doc: "Client ID value obtained from auth provider for use with APIs",
         format: String,
         sensitive: true,
-        default: undefined, // We can pull from ENV variables if possible
+        default: undefined // We can pull from ENV variables if possible
       },
       secret: {
         doc: "Client Secret value obtained from auth provider for use with APIs",
         format: String,
         sensitive: true,
-        default: undefined, // We can pull from ENV variables if possible
+        default: undefined // We can pull from ENV variables if possible
       }
     },
     auth: {
