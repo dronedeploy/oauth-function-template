@@ -9,6 +9,6 @@ Executes OAuth2 authorization flow for a given provider based on configuration
 
 ## Run
 
-Deploy the function with `functions deploy <authProvider name from config> --trigger-http`
+Deploy the function with `functions deploy ddauth --trigger-http`
 
 Navigate to the url displayed in the terminal with `/auth` as the final part of the path
