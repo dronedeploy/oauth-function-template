@@ -7,24 +7,19 @@ var config = convict({
     format: String,
     default: undefined,
   },
-  callbackUrl: {
-    doc: "Callback url to be used during the OAuth flow",
-    format: String,
-    default: undefined
-  },
   credentials: {
     client: {
       id: {
         doc: "Client ID value obtained from auth provider for use with APIs",
         format: String,
         sensitive: true,
-        default: undefined // We can pull from ENV variables if possible
+        default: undefined, // We can pull from ENV variables if possible
       },
       secret: {
         doc: "Client Secret value obtained from auth provider for use with APIs",
         format: String,
         sensitive: true,
-        default: undefined // We can pull from ENV variables if possible
+        default: undefined, // We can pull from ENV variables if possible
       }
     },
     auth: {
@@ -51,11 +46,6 @@ var config = convict({
     },
   },
   authorizeUrl: {
-    redirect_uri: {
-      doc: "Fully qualified url for redirect following successful OAuth authorization",
-      format: String,
-      default: undefined
-    },
     scope: {
       doc: "Authorization scope being requested from the OAuth provider",
       format: String,
@@ -63,8 +53,5 @@ var config = convict({
     }
   }
 });
-
-config.loadFile('./config.json');
-config.set('authorizeUrl.redirect_uri', config.get('callbackUrl'));
 
 module.exports = config;
