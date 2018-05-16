@@ -6,7 +6,8 @@ const oauth2 = require('simple-oauth2').create(provider.credentials);
 // Initializes the OAuth2 flow - successful authorization results in redirect to callback export
 const oauth2InitHandler = (req, res, next) => {
   const authorizationUri = oauth2.authorizationCode.authorizeURL(provider.authorizeUrl);
-  res.redirect(authorizationUri);
+  // We return the authorization Uri to the client for loading in a new window
+  res.send(authorizationUri);
 };
 
 // Callback handler to take the auth code from first OAuth2 step and get the tokens
@@ -24,7 +25,6 @@ const oauth2CallbackHandler = (req, res) => {
     // but in reality, we would want to save in datastore
     const accessToken = oauth2.accessToken.create(result);
     res.status(200).send(result);
-    // res.redirect(provider.successUrl);
   })
   .catch((error) => {
     console.log('Access Token Error', error.message);
@@ -32,7 +32,21 @@ const oauth2CallbackHandler = (req, res) => {
   });
 };
 
+const handleCORS = (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.set('Access-Control-Allow-Credential', true);
+  res.set('Access-Control-Allow-Methods', 'GET, POST');
+  console.log('method: ' + req.method);
+  if (req.method == 'OPTIONS') {
+      console.log('OPTIONS');
+      res.status(200).send('ok');
+  }
+}
+
 exports[provider.functionName] = function (req, res) {
+  handleCORS(req, res);
+
   const path = req.path;
   switch(path) {
     case '/auth':
@@ -40,9 +54,6 @@ exports[provider.functionName] = function (req, res) {
       break;
     case '/auth/callback':
       oauth2CallbackHandler(req, res);
-      break;
-    case '/home':
-      res.send('<h1>SUCCESS</h1>')
       break;
     default: 
       res.status(404).send('Not Found');
