@@ -1,3 +1,4 @@
+const tableUtils = require('./datastore/table');
 const provider = require('./provider');
 const oauth2 = require('simple-oauth2').create(provider.credentials);
 
@@ -21,10 +22,15 @@ const oauth2CallbackHandler = (req, res, ctx) => {
   .then((result) => {
     // Result will contain: user, access token and refresh token
     // This create call handles keeping tokens for us in this accessToken object,
-    // but in reality, we would want to save in datastore
-    const accessToken = oauth2.accessToken.create(result);
-    // For now just send raw result back to client
-    res.status(200).send(result);
+    // but in reality, we want to save in datastore
+
+    // Get our oauth table and store the token data
+    let accessTokensTable;
+    tableUtils.setupOAuthTable(ctx)
+      .then((tableId) => {
+        // TODO: Add code to put the token data (access_token, expires_at, refresh_token)
+        // in the datastore
+      });
   })
   .catch((error) => {
     console.log('Access Token Error', error.message);
