@@ -1,0 +1,20 @@
+{
+  "authProvider": "providername",
+  "callbackUrl": "https://us-central1-dronedeploy-functions-0.cloudfunctions.net/providername-oauth/auth/callback",
+  "credentials": {
+    "client": {
+      "id": "redacted - see password vault",
+      "secret": "redacted - see password vault"
+    },
+    "auth": {
+      "authorizeHost": "https://providername.com",
+      "authorizePath": "/static/app-login/index.html",
+      "tokenHost": "https://api.providername.com",
+      "tokenPath": "/api/oauth/token"
+    }
+  },
+  "authorizeUrl": {
+    "scope": "fields:read",
+    "page": "oidcauthn"
+  }
+}

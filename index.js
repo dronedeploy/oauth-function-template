@@ -6,36 +6,7 @@ const handler = require('./handler');
 
 global.APP_SLUG = '<replace with your app slug>';
 
-let config = {
-  authRequired: true,
-  mockToken: false,
-  config: {
-    cors: {
-      headers: [] // add custom headers here to be permitted by cors
-    }
-  }
-}
-
-let req = {
-  headers: {
-
-  },
-  query: ''
-}
-let res = {
-  headers: [],
-  status: () => {
-    return {
-      send: () => {
-
-      }
-    }
-  },
-  set: (name, value) => {
-    res.headers[name] = value;
-  },
-  send: () => {}
-}
+let config = require('./config.json');
 
 exports[provider.functionName] = function (req, res) {
   bootstrap(config, req, res, (err, ctx) => {

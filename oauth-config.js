@@ -64,7 +64,7 @@ var config = convict({
   }
 });
 
-config.loadFile('./config.json');
+config.loadFile('./provider-oauth-config.json');
 config.set('authorizeUrl.redirect_uri', config.get('callbackUrl'));
 
 module.exports = config;
