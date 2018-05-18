@@ -1,0 +1,26 @@
+service: providername-oauth-service
+
+provider:
+  name: dronedeploy
+
+#
+# To get application slug list all your applications with:
+#   serverless dronedeploy apps --list
+#
+# To get slug for new applcation create one with:
+#   serverless dronedeploy apps --create
+#
+functions:
+  providername-oauth:
+    handler: providername
+    name: "ProviderName OAuth"
+    memory: "128"
+    app: app-slug-goes-here
+
+plugins:
+  - "serverless-dronedeploy"
+
+package:
+  exclude:
+    - node_modules/**
+    - public/**
