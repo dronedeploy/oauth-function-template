@@ -1,15 +1,15 @@
 {
-  "authProvider": "climate",
-  "callbackUrl": "http://localhost:8010/clay-test/us-central1/climate/auth/callback",
+  "authProvider": "providername",
+  "callbackUrl": "https://us-central1-dronedeploy-functions-0.cloudfunctions.net/providername-oauth/auth/callback",
   "credentials": {
     "client": {
       "id": "redacted - see password vault",
       "secret": "redacted - see password vault"
     },
     "auth": {
-      "authorizeHost": "https://climate.com",
+      "authorizeHost": "https://providername.com",
       "authorizePath": "/static/app-login/index.html",
-      "tokenHost": "https://api.climate.com",
+      "tokenHost": "https://api.providername.com",
       "tokenPath": "/api/oauth/token"
     }
   },
