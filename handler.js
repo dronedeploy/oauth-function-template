@@ -28,8 +28,26 @@ const oauth2CallbackHandler = (req, res, ctx) => {
     let accessTokensTable;
     tableUtils.setupOAuthTable(ctx)
       .then((tableId) => {
-        // TODO: Add code to put the token data (access_token, expires_at, refresh_token)
-        // in the datastore
+        // Put the token data (access_token, expires_at,
+        // refresh_token) in the datastore
+        accessTokensTable = ctx.datastore.table(tableId);
+
+        // we store the access token data by associating
+        // it with the user on the function jwt auth token
+        console.log(`User: ${ctx.token.username}`);
+        accessTokensTable.upsertRow(ctx.token.username, {
+          accessToken: result.access_token,
+          access_expires_at: result.expires_at,
+          refreshToken: result.refresh_token}
+        ).then((rowData) => {
+          if (!rowData.ok) {
+            console.log(JSON.stringify(rowData));
+            // Problem storing the access token which will
+            // impact potential future api calls - send error
+            throw new Error(rowData.errors[0]);
+          }
+          return res.status(200).send();
+        });
       });
   })
   .catch((error) => {
