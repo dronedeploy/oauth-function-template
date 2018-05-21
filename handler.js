@@ -82,7 +82,7 @@ const oauth2CallbackHandler = (req, res, ctx) => {
 const doesTokenNeedRefresh = (token) => {
   // Provide a window of time before the actual expiration to
   // refresh the token
-  const EXPIRATION_WINDOW_IN_SECONDS = 4 * 60 * 60; // 300;
+  const EXPIRATION_WINDOW_IN_SECONDS = 300;
   
   const expirationTimeInSeconds = token.expires_at.getTime() / 1000;
   const expirationWindowStart = expirationTimeInSeconds - EXPIRATION_WINDOW_IN_SECONDS;
