@@ -39,41 +39,40 @@ const oauth2CallbackHandler = (req, res, ctx) => {
   };
 
   // Save the access token
-  oauth2.authorizationCode.getToken(tokenConfig)
-  .then((result) => {
-    // Result will contain: user, access token and refresh token
-    // This create call handles keeping tokens for us in this accessToken object,
-    // but in reality, we want to save in datastore
+  return oauth2.authorizationCode.getToken(tokenConfig)
+    .then((result) => {
+      // Result will contain: user, access token and refresh token
+      // This create call handles keeping tokens for us in this accessToken object,
+      // but in reality, we want to save in datastore
 
-    // Get our oauth table and store the token data
-    tableUtils.setupOAuthTable(ctx)
-      .then((tableId) => {
-        // Put the token data (access_token, expires_at,
-        // refresh_token) in the datastore
-        var accessTokensTable = ctx.datastore.table(tableId);
+      // Get our oauth table and store the token data
+      return tableUtils.setupOAuthTable(ctx)
+        .then((tableId) => {
+          // Put the token data (access_token, expires_at,
+          // refresh_token) in the datastore
+          var accessTokensTable = ctx.datastore.table(tableId);
 
-        // we store the access token data by associating
-        // it with the user on the function jwt auth token
-        console.log(`User: ${ctx.token.username}`);
-        accessTokensTable.upsertRow(ctx.token.username, {
-          accessToken: result.access_token,
-          access_expires_at: result.expires_at,
-          refreshToken: result.refresh_token}
-        ).then((rowData) => {
-          if (!rowData.ok) {
-            console.log(JSON.stringify(rowData));
-            // Problem storing the access token which will
-            // impact potential future api calls - send error
-            throw new Error(rowData.errors[0]);
-          }
-          return res.status(200).send(generateCallbackHtml(result));
+          // we store the access token data by associating
+          // it with the user on the function jwt auth token
+          return accessTokensTable.upsertRow(ctx.token.username, {
+            accessToken: result.access_token,
+            access_expires_at: result.expires_at,
+            refreshToken: result.refresh_token}
+          ).then((rowData) => {
+            if (!rowData.ok) {
+              console.log(JSON.stringify(rowData));
+              // Problem storing the access token which will
+              // impact potential future api calls - send error
+              throw new Error(rowData.errors[0]);
+            }
+            return res.status(200).send(generateCallbackHtml(result));
+          });
         });
-      });
-  })
-  .catch((error) => {
-    console.log('Access Token Error', error.message);
-    res.status(500).send(error.message);
-  });
+    })
+    .catch((error) => {
+      console.log('Access Token Error', error.message);
+      res.status(500).send(error.message);
+    });
 };
 
 exports.routeHandler = function (req, res, ctx) {
