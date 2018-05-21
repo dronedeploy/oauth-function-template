@@ -46,12 +46,11 @@ const oauth2CallbackHandler = (req, res, ctx) => {
     // but in reality, we want to save in datastore
 
     // Get our oauth table and store the token data
-    let accessTokensTable;
     tableUtils.setupOAuthTable(ctx)
       .then((tableId) => {
         // Put the token data (access_token, expires_at,
         // refresh_token) in the datastore
-        accessTokensTable = ctx.datastore.table(tableId);
+        var accessTokensTable = ctx.datastore.table(tableId);
 
         // we store the access token data by associating
         // it with the user on the function jwt auth token
@@ -67,7 +66,7 @@ const oauth2CallbackHandler = (req, res, ctx) => {
             // impact potential future api calls - send error
             throw new Error(rowData.errors[0]);
           }
-          return res.status(200).send(generateCallbackHtml(result.access_token));
+          return res.status(200).send(generateCallbackHtml(result));
         });
       });
   })
