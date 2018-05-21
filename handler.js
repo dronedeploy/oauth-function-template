@@ -10,6 +10,27 @@ const oauth2InitHandler = (req, res, ctx) => {
   res.send(authorizationUri);
 };
 
+// Stores the token in the datastore and return it to the client if successful
+const storeTokenData = (table, username, tokenData, res) => {
+  // Some tokens may not have an 'expires_at' property, so we will
+  // calculate it anyway based on the 'expires_in' value
+  var accessTokenObj = oauth2.accessToken.create(tokenData);
+  console.log(JSON.stringify(accessTokenObj.token));
+  return table.upsertRow(username, {
+    accessToken: accessTokenObj.token.access_token,
+    access_expires_at: accessTokenObj.token.expires_at,
+    refreshToken: accessTokenObj.token.refresh_token}
+  ).then((rowData) => {
+    if (!rowData.ok) {
+      console.log(JSON.stringify(rowData));
+      // Problem storing the access token which will
+      // impact potential future api calls - send error
+      throw new Error(rowData.errors[0]);
+    }
+    return res.status(200).send(generateCallbackHtml(accessTokenObj.token));
+  });
+}
+
 const generateCallbackHtml = (token) => {
   token = JSON.stringify(token);
   return '<!DOCTYPE html>'+
@@ -42,37 +63,78 @@ const oauth2CallbackHandler = (req, res, ctx) => {
   return oauth2.authorizationCode.getToken(tokenConfig)
     .then((result) => {
       // Result will contain: user, access token and refresh token
-      // This create call handles keeping tokens for us in this accessToken object,
-      // but in reality, we want to save in datastore
-
       // Get our oauth table and store the token data
       return tableUtils.setupOAuthTable(ctx)
         .then((tableId) => {
-          // Put the token data (access_token, expires_at,
-          // refresh_token) in the datastore
           var accessTokensTable = ctx.datastore.table(tableId);
 
           // we store the access token data by associating
           // it with the user on the function jwt auth token
-          return accessTokensTable.upsertRow(ctx.token.username, {
-            accessToken: result.access_token,
-            access_expires_at: result.expires_at,
-            refreshToken: result.refresh_token}
-          ).then((rowData) => {
-            if (!rowData.ok) {
-              console.log(JSON.stringify(rowData));
-              // Problem storing the access token which will
-              // impact potential future api calls - send error
-              throw new Error(rowData.errors[0]);
-            }
-            return res.status(200).send(generateCallbackHtml(result));
-          });
+          return storeTokenData(accessTokensTable, ctx.token.username, result, res);
         });
     })
     .catch((error) => {
       console.log('Access Token Error', error.message);
       res.status(500).send(error.message);
     });
+};
+
+const doesTokenNeedRefresh = (token) => {
+  // Provide a window of time before the actual expiration to
+  // refresh the token
+  const EXPIRATION_WINDOW_IN_SECONDS = 4 * 60 * 60; // 300;
+  
+  const expirationTimeInSeconds = token.expires_at.getTime() / 1000;
+  const expirationWindowStart = expirationTimeInSeconds - EXPIRATION_WINDOW_IN_SECONDS;
+  
+  // If the start of the window has passed, refresh the token
+  const nowInSeconds = (new Date()).getTime() / 1000;
+  const shouldRefresh = nowInSeconds >= expirationWindowStart;
+
+  return shouldRefresh;
+};
+
+const refreshHandler = (req, res, ctx) => {
+  return tableUtils.setupOAuthTable(ctx)
+    .then((tableId) => {
+      var accessTokensTable = ctx.datastore.table(tableId);
+
+      return accessTokensTable.getRowByExternalId(ctx.token.username)
+        .then((result) => {
+          if (!result.ok) {
+            return res.status(500).send(JSON.stringify({
+              ok: false,
+              error: 'User not authorized - no token to refresh'
+            }));
+          }
+
+          // This create call handles keeping tokens for us in this accessToken
+          // object, but in reality, we would want to save in datastore
+          let tokenData = {
+            access_token: result.data.accessToken,
+            expires_at: result.data.access_expires_at,
+            refresh_token: result.data.refreshToken
+          }
+          var accessTokenObj = oauth2.accessToken.create(tokenData);
+
+          // We preemptively refresh the token to avoid sending a token back
+          // to the client that may expire very soon
+          if (doesTokenNeedRefresh(accessTokenObj.token)) {
+            console.log("Refreshing token");
+            return accessTokenObj.refresh()
+              .then((refreshResult) => {
+                console.log("Refresh success - returning new token");
+                return storeTokenData(accessTokensTable, ctx.token.username, refreshResult.token, res);
+              })
+              .catch((err) => {
+                return res.status(500).send(err.message);
+              });
+          }
+
+          // No refresh needed, return token like normal
+          return res.status(200).send(generateCallbackHtml(tokenData.access_token));
+        })
+    })
 };
 
 exports.routeHandler = function (req, res, ctx) {
@@ -83,6 +145,7 @@ exports.routeHandler = function (req, res, ctx) {
       // client should call this route first
       // will check if existing token for user
       // and attempt refresh if expired
+      refreshHandler(req, res, ctx);
       break;
     case '/auth':
       // client calls this route to begin auth flow
