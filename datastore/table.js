@@ -44,18 +44,50 @@ const resultContainsError = (result) => {
   return result.errors ? true : false;
 }
 
-const createOAuthTableColumns = (ctx, tableId) => {
-  var tableColumnQueries = queries.tableColumns.map((columnData) => {
-    columnData.input.tableId = tableId;
-    return ctx.graphql.query(queries.createTableColumnQuery, columnData);
+const getMissingColumns = (columnsSubset) => {
+  return queries.tableColumns.filter((column) => {
+    return !columnsSubset.includes(column.name);
   });
+}
 
-  return Promise.all(tableColumnQueries)
-    .then((results) => {
-      if (results.some(resultContainsError)) {
-        return Promise.reject('Error creating table columns');
+const getOAuthTableColumnsToCreate = (ctx, tableId) => {
+  return ctx.graphql.query(queries.findColumnsQuery)
+    .then((result) => {
+      var columnsResult = result.data.node.table.columns;
+      switch (columnsResult.length) {
+        case 0:
+          return queries.tableColumns;
+        case 3:
+          return [];
+        default:
+          return getMissingColumns(columnsResult);
       }
-      return tableId;
+    })
+};
+
+const createOAuthTableColumns = (ctx, tableId) => {
+
+  return getOAuthTableColumnsToCreate(ctx, tableId)
+    .then((columns) => {
+      // This really shouldn't ever happen, but if it does
+      // we don't want to error out trying to create columns
+      // that already exist
+      if (columns.length === 0) {
+        return tableId;
+      }
+
+      var tableColumnQueries = columns.map((columnData) => {
+        columnData.input.tableId = tableId;
+        return ctx.graphql.query(queries.createTableColumnQuery, columnData);
+      });
+    
+      return Promise.all(tableColumnQueries)
+        .then((results) => {
+          if (results.some(resultContainsError)) {
+            return Promise.reject('Error creating table columns');
+          }
+          return tableId;
+        });
     });
 };
 

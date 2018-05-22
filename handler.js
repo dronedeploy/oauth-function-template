@@ -15,14 +15,12 @@ const storeTokenData = (table, username, tokenData, res) => {
   // Some tokens may not have an 'expires_at' property, so we will
   // calculate it anyway based on the 'expires_in' value
   var accessTokenObj = oauth2.accessToken.create(tokenData);
-  console.log(JSON.stringify(accessTokenObj.token));
   return table.upsertRow(username, {
     accessToken: accessTokenObj.token.access_token,
     access_expires_at: accessTokenObj.token.expires_at,
     refreshToken: accessTokenObj.token.refresh_token}
   ).then((rowData) => {
     if (!rowData.ok) {
-      console.log(JSON.stringify(rowData));
       // Problem storing the access token which will
       // impact potential future api calls - send error
       throw new Error(rowData.errors[0]);

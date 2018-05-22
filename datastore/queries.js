@@ -40,6 +40,19 @@ const FIND_TABLE_QUERY = `{
   }
 }`;
 
+const FIND_COLUMNS_QUERY = `{
+  node(id: "Application:${global.APP_SLUG}") {
+    ... on Application {
+      table(name: "${TABLE_NAME}") {
+        name
+        columns {
+          name
+        }
+      }
+    }
+  }
+}`;
+
 let ACCESS_TOKEN_COLUMN = {
   input: {
     columnType: "TEXT",
@@ -77,6 +90,7 @@ let TABLE_COLUMNS = [
 module.exports = {
   createTableColumnQuery: CREATE_TABLE_COLUMN_QUERY,
   createTableQuery: CREATE_TABLE_QUERY,
+  findColumnsQuery: FIND_COLUMNS_QUERY,
   findTableQuery: FIND_TABLE_QUERY,
   tableColumns: TABLE_COLUMNS,
   tableName: TABLE_NAME
