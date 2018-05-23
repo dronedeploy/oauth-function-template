@@ -4,9 +4,8 @@ const oauth2 = require('simple-oauth2').create(provider.credentials);
 
 // Initializes the OAuth2 flow - successful authorization results in redirect to callback export
 const oauth2InitHandler = (req, res, ctx) => {
-  var urlObj = provider.authorizeUrl;
-  urlObj.redirect_uri += '?jwt_token=' + ctx.originalToken;
-  const authorizationUri = oauth2.authorizationCode.authorizeURL(urlObj);
+  provider.authorizeUrl.redirect_uri = `${provider.callbackUrl}?jwt_token=${ctx.originalToken}`;
+  const authorizationUri = oauth2.authorizationCode.authorizeURL(provider.authorizeUrl);
   res.send(authorizationUri);
 };
 
