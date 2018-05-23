@@ -10,25 +10,6 @@ const oauth2InitHandler = (req, res, ctx) => {
   res.send(authorizationUri);
 };
 
-// Stores the token in the datastore and return it to the client if successful
-const storeTokenData = (table, username, tokenData, res) => {
-  // Some tokens may not have an 'expires_at' property, so we will
-  // calculate it anyway based on the 'expires_in' value
-  var accessTokenObj = oauth2.accessToken.create(tokenData);
-  return table.upsertRow(username, {
-    accessToken: accessTokenObj.token.access_token,
-    access_expires_at: accessTokenObj.token.expires_at,
-    refreshToken: accessTokenObj.token.refresh_token}
-  ).then((rowData) => {
-    if (!rowData.ok) {
-      // Problem storing the access token which will
-      // impact potential future api calls - send error
-      throw new Error(rowData.errors[0]);
-    }
-    return res.status(200).send(generateCallbackHtml(accessTokenObj.token));
-  });
-}
-
 const generateCallbackHtml = (token) => {
   token = JSON.stringify(token);
   return '<!DOCTYPE html>'+
@@ -49,6 +30,31 @@ const generateCallbackHtml = (token) => {
   '</body>'+
   '</html>';
 };
+
+const createErrorHtml = (err) => {
+  // Nest in an error field for consistency at the client-level
+  // and so if err is a string, we create an object for the callback html
+  return generateCallbackHtml({error: err});
+}
+
+// Stores the token in the datastore and return it to the client if successful
+const storeTokenData = (table, username, tokenData, res) => {
+  // Some tokens may not have an 'expires_at' property, so we will
+  // calculate it anyway based on the 'expires_in' value
+  var accessTokenObj = oauth2.accessToken.create(tokenData);
+  return table.upsertRow(username, {
+    accessToken: accessTokenObj.token.access_token,
+    access_expires_at: accessTokenObj.token.expires_at,
+    refreshToken: accessTokenObj.token.refresh_token}
+  ).then((rowData) => {
+    if (!rowData.ok) {
+      // Problem storing the access token which will
+      // impact potential future api calls - send error
+      throw new Error(rowData.errors[0]);
+    }
+    return res.status(200).send(generateCallbackHtml(accessTokenObj.token));
+  });
+}
 
 // Callback handler to take the auth code from first OAuth2 step and get the tokens
 const oauth2CallbackHandler = (req, res, ctx) => {
@@ -73,7 +79,7 @@ const oauth2CallbackHandler = (req, res, ctx) => {
     })
     .catch((error) => {
       console.log('Access Token Error', error.message);
-      res.status(500).send(error.message);
+      res.status(500).send(createErrorHtml(error.message));
     });
 };
 
@@ -92,6 +98,10 @@ const doesTokenNeedRefresh = (token) => {
   return shouldRefresh;
 };
 
+const isEmptyToken = (data) => {
+  return data.accessToken === "" || data.refreshToken === "";
+};
+
 const refreshHandler = (req, res, ctx) => {
   return tableUtils.setupOAuthTable(ctx)
     .then((tableId) => {
@@ -99,8 +109,8 @@ const refreshHandler = (req, res, ctx) => {
 
       return accessTokensTable.getRowByExternalId(ctx.token.username)
         .then((result) => {
-          if (!result.ok) {
-            return res.status(500).send(JSON.stringify({
+          if (!result.ok || isEmptyToken(result.data)) {
+            return res.status(500).send(createErrorHtml({
               ok: false,
               error: 'User not authorized - no token to refresh'
             }));
@@ -125,7 +135,7 @@ const refreshHandler = (req, res, ctx) => {
                 return storeTokenData(accessTokensTable, ctx.token.username, refreshResult.token, res);
               })
               .catch((err) => {
-                return res.status(500).send(err.message);
+                return res.status(500).send(createErrorHtml(err.message));
               });
           }
 
