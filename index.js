@@ -1,10 +1,11 @@
 'use strict';
 require('dotenv').config()
+
+global.APP_SLUG = '<replace with your app slug>';
+
 const bootstrap = require('dronedeploy-functions-api');
 const provider = require('./provider');
 const handler = require('./handler');
-
-global.APP_SLUG = '<replace with your app slug>';
 
 let config = require('./config.json');
 
