@@ -1,6 +1,6 @@
 {
   "authProvider": "providername",
-  "callbackUrl": "https://us-central1-dronedeploy-functions-0.cloudfunctions.net/providername-oauth/auth/callback",
+  "callbackUrl": "https://dronedeployfunctions.com/providername-oauth/auth/callback",
   "credentials": {
     "client": {
       "id": "redacted - see password vault",
