@@ -66,7 +66,7 @@ const oauth2CallbackHandler = (req, res, ctx) => {
   // Save the access token
   return oauth2.authorizationCode.getToken(tokenConfig)
     .then((result) => {
-      // Result for Climate will contain: user, access token and refresh token
+      // Result will contain: user, access token and refresh token
       // Get our oauth table and store the token data
       return tableUtils.setupOAuthTable(ctx)
         .then((tableId) => {
