@@ -144,6 +144,29 @@ const refreshHandler = (req, res, ctx) => {
     })
 };
 
+// Blank tokens and current date (needed for date column validation)
+// for use with logout
+const emptyToken = {
+  accessToken: "",
+  access_expires_at: new Date().toISOString(),
+  refreshToken: ""
+};
+
+const logoutHandler = (req, res, ctx) => {
+  return tableUtils.setupOAuthTable(ctx)
+    .then((tableId) => {
+      var accessTokensTable = ctx.datastore.table(tableId);
+
+      return accessTokensTable.editRow(ctx.token.username, emptyToken)
+        .then((result) => {
+          if (!result.ok) {
+            return res.status(500).send(createErrorHtml(result.errors[0]));
+          }
+          return res.status(200).send(generateCallbackHtml({}));
+        });
+    });
+};
+
 exports.routeHandler = function (req, res, ctx) {
 
   const path = req.path;
@@ -163,6 +186,9 @@ exports.routeHandler = function (req, res, ctx) {
       // this handler should store the token data
       // and return a response to the client
       oauth2CallbackHandler(req, res, ctx);
+      break;
+    case '/logout':
+      logoutHandler(req, res, ctx);
       break;
     default: 
       res.status(404).send('Not Found');
