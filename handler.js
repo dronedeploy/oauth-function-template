@@ -25,7 +25,6 @@ const generateCallbackHtml = (token) => {
   `        window.opener.postMessage(\'${token}\', \'*\')`+
   '    }'+
   '    </script>'+
-  ''+
   '</body>'+
   '</html>';
 };
@@ -49,7 +48,7 @@ const storeTokenData = (table, username, tokenData, res) => {
     if (!rowData.ok) {
       // Problem storing the access token which will
       // impact potential future api calls - send error
-      throw new Error(rowData.errors[0]);
+      throw new Error(JSON.stringify(rowData.errors[0]));
     }
     return res.status(200).send(generateCallbackHtml(accessTokenObj.token));
   });
