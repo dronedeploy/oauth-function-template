@@ -29,14 +29,18 @@ const generateCallbackHtml = (token) => {
   '</html>';
 };
 
+const packageError = (err) => {
+  return { error: err };
+}
+
 const createErrorHtml = (err) => {
   // Nest in an error field for consistency at the client-level
   // and so if err is a string, we create an object for the callback html
-  return generateCallbackHtml({error: err});
+  return generateCallbackHtml(packageError(err));
 }
 
 // Stores the token in the datastore and return it to the client if successful
-const storeTokenData = (table, username, tokenData, res) => {
+const storeTokenData = (table, username, tokenData, res, isRefresh) => {
   // Some tokens may not have an 'expires_at' property, so we will
   // calculate it anyway based on the 'expires_in' value
   var accessTokenObj = oauth2.accessToken.create(tokenData);
@@ -49,6 +53,10 @@ const storeTokenData = (table, username, tokenData, res) => {
       // Problem storing the access token which will
       // impact potential future api calls - send error
       throw new Error(JSON.stringify(rowData.errors[0]));
+    }
+
+    if (isRefresh) {
+      return res.status(200).send(accessTokenObj.token);
     }
     return res.status(200).send(generateCallbackHtml(accessTokenObj.token));
   });
@@ -108,7 +116,7 @@ const refreshHandler = (req, res, ctx) => {
       return accessTokensTable.getRowByExternalId(ctx.token.username)
         .then((result) => {
           if (!result.ok || isEmptyToken(result.data)) {
-            return res.status(500).send(createErrorHtml({
+            return res.status(500).send(packageError({
               ok: false,
               error: 'User not authorized - no token to refresh'
             }));
@@ -130,15 +138,15 @@ const refreshHandler = (req, res, ctx) => {
             return accessTokenObj.refresh()
               .then((refreshResult) => {
                 console.log("Refresh success - returning new token");
-                return storeTokenData(accessTokensTable, ctx.token.username, refreshResult.token, res);
+                return storeTokenData(accessTokensTable, ctx.token.username, refreshResult.token, res, true);
               })
               .catch((err) => {
-                return res.status(500).send(createErrorHtml(err.message));
+                return res.status(500).send(packageError(err.message));
               });
           }
 
           // No refresh needed, return token like normal
-          return res.status(200).send(generateCallbackHtml(tokenData.access_token));
+          return res.status(200).send(tokenData.access_token);
         })
     })
 };

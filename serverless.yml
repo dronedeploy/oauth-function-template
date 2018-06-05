@@ -14,7 +14,7 @@ functions:
   providername-oauth:
     handler: providername
     name: "ProviderName OAuth"
-    memory: "128"
+    memory: 128
     app: app-slug-goes-here
 
 plugins:
