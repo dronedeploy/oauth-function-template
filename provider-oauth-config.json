@@ -1,10 +1,9 @@
 {
-  "authProvider": "providername",
-  "callbackUrl": "https://dronedeployfunctions.com/providername-oauth/auth/callback",
+  "callbackUrl": "https://dronedeployfunctions.com/{}/auth/callback",
   "credentials": {
     "client": {
-      "id": "redacted - see password vault",
-      "secret": "redacted - see password vault"
+      "id": "client id goes here",
+      "secret": "client secret goes here"
     },
     "auth": {
       "authorizeHost": "https://providername.com",
