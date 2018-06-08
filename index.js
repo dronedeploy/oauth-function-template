@@ -1,7 +1,7 @@
 'use strict';
 require('dotenv').config()
 
-global.APP_SLUG = '<replace with your app slug>';
+global.APP_SLUG = process.env.APP_SLUG || undefined;
 
 const bootstrap = require('dronedeploy-functions-api');
 const provider = require('./provider');
@@ -9,7 +9,12 @@ const handler = require('./handler');
 
 let config = require('./config.json');
 
-exports[provider.functionName] = function (req, res) {
+exports.oauth = function (req, res) {
+  if (!global.APP_SLUG) {
+    const msg = 'App slug not available, did you deploy using DroneDeploy-Cli?';
+    console.error(msg);
+    res.status(500).send(msg)
+  }
   bootstrap(config, req, res, (err, ctx) => {
     if (err) {
       console.error(err, err.stack);
@@ -17,6 +22,5 @@ exports[provider.functionName] = function (req, res) {
       return;
     }
     handler.routeHandler(req, res, ctx);
-
   });
 }
