@@ -115,11 +115,11 @@ const refreshHandler = (req, res, ctx) => {
 
       return accessTokensTable.getRowByExternalId(ctx.token.username)
         .then((result) => {
-          if (!result.ok || isEmptyToken(result.data)) {
-            return res.status(500).send(packageError({
-              ok: false,
-              error: 'User not authorized - no token to refresh'
-            }));
+          if (!result.ok) {
+            return res.status(500).send(packageError(result));
+          }
+          if (isEmptyToken(result.data)) {
+            return res.status(204).send();
           }
 
           // This create call handles keeping tokens for us in this accessToken
