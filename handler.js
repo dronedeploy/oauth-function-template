@@ -108,6 +108,10 @@ const isEmptyToken = (data) => {
   return data.accessToken === "" || data.refreshToken === "";
 };
 
+const couldNotFindData = (errResponse) => {
+  return errResponse.errors[0].message.indexOf('Could not find data') !== -1;
+};
+
 const refreshHandler = (req, res, ctx) => {
   return tableUtils.setupOAuthTable(ctx)
     .then((tableId) => {
@@ -116,6 +120,9 @@ const refreshHandler = (req, res, ctx) => {
       return accessTokensTable.getRowByExternalId(ctx.token.username)
         .then((result) => {
           if (!result.ok) {
+            if (couldNotFindData(result)) {
+              return res.status(401).send();
+            }
             return res.status(500).send(packageError(result));
           }
           if (isEmptyToken(result.data)) {
