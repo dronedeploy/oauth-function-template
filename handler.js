@@ -2,9 +2,16 @@ const tableUtils = require('./datastore/table');
 const provider = require('./provider');
 const oauth2 = require('simple-oauth2').create(provider.credentials);
 
+const setupStateParam = (ctx) => {
+  const obj = provider.authorizeUrl.state ? JSON.parse(provider.authorizeUrl.state) : {};
+  obj.jwt_token = ctx.originalToken;
+  return JSON.stringify(obj);
+}
+
 // Initializes the OAuth2 flow - successful authorization results in redirect to callback export
 const oauth2InitHandler = (req, res, ctx) => {
-  provider.authorizeUrl.redirect_uri = `${provider.callbackUrl}?jwt_token=${ctx.originalToken}`;
+  provider.authorizeUrl.redirect_uri = `${provider.callbackUrl}`;
+  provider.authorizeUrl.state = setupStateParam(ctx);
   const authorizationUri = oauth2.authorizationCode.authorizeURL(provider.authorizeUrl);
   res.send(authorizationUri);
 };
@@ -66,7 +73,7 @@ const storeTokenData = (table, username, tokenData, res, isRefresh) => {
 const oauth2CallbackHandler = (req, res, ctx) => {
   const tokenConfig = {
     code: req.query.code,
-    redirect_uri: provider.callbackUrl + '?jwt_token=' + ctx.originalToken
+    redirect_uri: provider.callbackUrl
   };
 
   // Save the access token
