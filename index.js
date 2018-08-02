@@ -3,7 +3,7 @@ require('dotenv').config()
 
 global.APP_SLUG = process.env.APP_SLUG || undefined;
 
-const bootstrap = require('dronedeploy-functions-api');
+const bootstrap = require('@dronedeploy/function-wrapper');
 const provider = require('./provider');
 const handler = require('./handler');
 
