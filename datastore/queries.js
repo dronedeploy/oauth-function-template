@@ -30,7 +30,7 @@ const CREATE_TABLE_COLUMN_QUERY = `mutation CreateTableColumn($input: CreateTabl
 }`;
 
 const FIND_TABLE_QUERY = `{
-  node(id: "Application:${global.APP_SLUG}") {
+  node(id: "Application:${global.APP_ID}") {
     ... on Application {
       table(name: "${TABLE_NAME}") {
         id
@@ -41,7 +41,7 @@ const FIND_TABLE_QUERY = `{
 }`;
 
 const FIND_COLUMNS_QUERY = `{
-  node(id: "Application:${global.APP_SLUG}") {
+  node(id: "Application:${global.APP_ID}") {
     ... on Application {
       table(name: "${TABLE_NAME}") {
         name

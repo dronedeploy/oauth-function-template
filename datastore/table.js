@@ -25,7 +25,7 @@ const _createOAuthTableIfNotExists = (ctx) => {
 const _createOAuthTable = (ctx) => {
   const createInput = {
     input: {
-      applicationId: `Application:${global.APP_SLUG}`,
+      applicationId: `Application:${global.APP_ID}`,
       name: queries.tableName,
       description: "Contains token data for OAuth"
     }

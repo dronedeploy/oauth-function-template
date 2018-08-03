@@ -1,14 +1,28 @@
 'use strict';
 
-global.APP_SLUG = process.env.APP_SLUG || undefined;
-
-const bootstrap = require('dronedeploy-functions-api');
+const bootstrap = require('@dronedeploy/function-wrapper');
 const config = require('./config.json');
 const handler = require('./handler');
 const { setConfig } = require('./oauth-config');
 
+exports.createOAuth = function (configuration) {
+  global.APP_ID = process.env.APP_ID || undefined;
+  addClientSecretsToConfiguration(configuration);
+  setConfig(configuration);
+  handler.initHandler();
+  return oauth;
+};
+
+const addClientSecretsToConfiguration = (configuration) => {
+  const client = {
+    id: process.env.CLIENT_ID,
+    secret: process.env.CLIENT_SECRET
+  };
+  configuration.credentials.client = client;
+};
+
 const oauth = function (req, res) {
-  if (!global.APP_SLUG) {
+  if (!global.APP_ID) {
     const msg = 'App slug not available, did you deploy using DroneDeploy-Cli?';
     console.error(msg);
     res.status(500).send(msg)
@@ -21,18 +35,4 @@ const oauth = function (req, res) {
     }
     handler.routeHandler(req, res, ctx);
   });
-};
-
-exports.createOAuth = function (configuration) {
-  addClientSecretsToConfiguration(configuration);
-  setConfig(configuration);
-  return oauth;
-};
-
-const addClientSecretsToConfiguration = (configuration) => {
-  const client = {
-    id: process.env.CLIENT_ID,
-    secret: process.env.CLIENT_SECRET
-  };
-  configuration.credentials.client = client;
 };

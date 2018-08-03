@@ -1,8 +1,8 @@
+const convict = require('convict');
 const stringFormat = require('string-format');
-var convict = require('convict');
- 
+
 // Define a schema
-var config = convict({
+const config = convict({
   callbackUrl: {
     doc: "Callback url to be used during the OAuth flow",
     format: String,

@@ -1,6 +1,6 @@
 {
   "dependencies": {
     "dotenv": "5.0.1",
-    "oauth-function-template": "git+ssh://git@github.com/dronedeploy/oauth-function-template.git#feature/int-193"
+    "oauth-function-template": "git+ssh://git@github.com/dronedeploy/oauth-function-template.git"
   }
 }
