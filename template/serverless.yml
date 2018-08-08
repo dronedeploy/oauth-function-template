@@ -16,7 +16,7 @@ functions:
     memory: 128
 
 plugins:
-  - "serverless-dronedeploy"
+  - "@dronedeploy/dronedeploy-cli"
 
 package:
   exclude:

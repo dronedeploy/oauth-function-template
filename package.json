@@ -4,7 +4,6 @@
   "main": "index.js",
   "dependencies": {
     "@dronedeploy/function-wrapper": "1.1.2",
-    "@google-cloud/debug-agent": "2.4.0",
     "convict": "4.2.0",
     "simple-oauth2": "1.5.2",
     "string-format": "2.0.0"
