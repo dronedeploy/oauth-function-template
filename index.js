@@ -1,12 +1,13 @@
 'use strict';
 
+global.APP_ID = process.env.APP_ID || undefined;
+
 const bootstrap = require('@dronedeploy/function-wrapper');
 const config = require('./config.json');
 const handler = require('./handler');
 const { setConfig } = require('./oauth-config');
 
 exports.createOAuth = function (configuration) {
-  global.APP_ID = process.env.APP_ID || undefined;
   addClientSecretsToConfiguration(configuration);
   setConfig(configuration);
   handler.initHandler();
@@ -14,11 +15,10 @@ exports.createOAuth = function (configuration) {
 };
 
 const addClientSecretsToConfiguration = (configuration) => {
-  const client = {
+  configuration.credentials.client = {
     id: process.env.CLIENT_ID,
     secret: process.env.CLIENT_SECRET
   };
-  configuration.credentials.client = client;
 };
 
 const oauth = function (req, res) {

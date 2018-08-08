@@ -10,7 +10,7 @@ const _oauthTableSetup = (ctx) => {
 
 const _createOAuthTableIfNotExists = (ctx) => {
   return ctx.graphql.query(queries.findTableQuery)
-      .then((result) => {        
+      .then((result) => {
         if (result.errors && result.data.node.table === null) {
           return _createOAuthTable(ctx)
             .then((tableIdResult) => {
@@ -41,14 +41,14 @@ const _createOAuthTable = (ctx) => {
 };
 
 const resultContainsError = (result) => {
-  return result.errors ? true : false;
-}
+  return !!result.errors;
+};
 
 const getMissingColumns = (columnsSubset) => {
   return queries.tableColumns.filter((column) => {
     return !columnsSubset.includes(column.name);
   });
-}
+};
 
 const getOAuthTableColumnsToCreate = (ctx, tableId) => {
   return ctx.graphql.query(queries.findColumnsQuery)

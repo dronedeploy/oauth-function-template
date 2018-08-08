@@ -1,4 +1,4 @@
-const oauth2 = require('simple-oauth2');
+let oauth2 = require('simple-oauth2');
 const tableUtils = require('./datastore/table');
 const { config } = require('./oauth-config');
 
@@ -8,7 +8,7 @@ exports.initHandler = function() {
   provider.callbackUrl = config.get('callbackUrl');
   provider.credentials = config.get('credentials');
   provider.authorizeUrl = config.get('authorizeUrl');
-  oauth2.create(provider.credentials);
+  oauth2 = oauth2.create(provider.credentials);
 };
 
 exports.routeHandler = function (req, res, ctx) {
@@ -42,7 +42,7 @@ exports.routeHandler = function (req, res, ctx) {
 const refreshHandler = (req, res, ctx) => {
   return tableUtils.setupOAuthTable(ctx)
     .then((tableId) => {
-      var accessTokensTable = ctx.datastore.table(tableId);
+      const accessTokensTable = ctx.datastore.table(tableId);
 
       return accessTokensTable.getRowByExternalId(ctx.token.username)
         .then((result) => {
@@ -58,12 +58,12 @@ const refreshHandler = (req, res, ctx) => {
 
           // This create call handles keeping tokens for us in this accessToken
           // object, but in reality, we would want to save in datastore
-          let tokenData = {
+          const tokenData = {
             access_token: result.data.accessToken,
             expires_at: result.data.access_expires_at,
             refresh_token: result.data.refreshToken
-          }
-          var accessTokenObj = oauth2.accessToken.create(tokenData);
+          };
+          const accessTokenObj = oauth2.accessToken.create(tokenData);
 
           // We preemptively refresh the token to avoid sending a token back
           // to the client that may expire very soon
@@ -116,7 +116,7 @@ const doesTokenNeedRefresh = (token) => {
 const storeTokenData = (table, username, tokenData, res, isRefresh) => {
   // Some tokens may not have an 'expires_at' property, so we will
   // calculate it anyway based on the 'expires_in' value
-  var accessTokenObj = oauth2.accessToken.create(tokenData);
+  const accessTokenObj = oauth2.accessToken.create(tokenData);
   return table.upsertRow(username, {
     accessToken: accessTokenObj.token.access_token,
     access_expires_at: accessTokenObj.token.expires_at,
@@ -205,7 +205,7 @@ const generateCallbackHtml = (token) => {
 const logoutHandler = (req, res, ctx) => {
   return tableUtils.setupOAuthTable(ctx)
     .then((tableId) => {
-      var accessTokensTable = ctx.datastore.table(tableId);
+      const accessTokensTable = ctx.datastore.table(tableId);
 
       return accessTokensTable.editRow(ctx.token.username, emptyToken)
         .then((result) => {
