@@ -2,5 +2,8 @@
   "dependencies": {
     "dotenv": "5.0.1",
     "oauth-function-template": "git+ssh://git@github.com/dronedeploy/oauth-function-template.git"
+  },
+  "devDependencies": {
+    "@dronedeploy/dronedeploy-cli": "^1.1.1"
   }
 }
