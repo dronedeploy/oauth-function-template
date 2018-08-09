@@ -24,4 +24,4 @@ additional fields will be included as query params (`key=value`) for the authori
 
 ## Production Deployment Steps
 1. Follow the "Quick Start" instructions for [DroneDeploy CLI](https://github.com/dronedeploy/dronedeploy-cli)
-2. Using the root of this directory as your template location will create a new OAuth function template from which to work
+2. Using the `/template` directory as your template location will create a new OAuth function template from which to work
