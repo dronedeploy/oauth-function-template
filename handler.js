@@ -1,56 +1,122 @@
+let oauth2 = require('simple-oauth2');
 const tableUtils = require('./datastore/table');
-const provider = require('./provider');
-const oauth2 = require('simple-oauth2').create(provider.credentials);
+const { config } = require('./oauth-config');
 
-const setupStateParam = (ctx) => {
-  const obj = provider.authorizeUrl.state ? JSON.parse(provider.authorizeUrl.state) : {};
-  obj.jwt_token = ctx.originalToken;
-  return JSON.stringify(obj);
-}
+const provider = {};
 
-// Initializes the OAuth2 flow - successful authorization results in redirect to callback export
-const oauth2InitHandler = (req, res, ctx) => {
-  provider.authorizeUrl.redirect_uri = `${provider.callbackUrl}`;
-  provider.authorizeUrl.state = setupStateParam(ctx);
-  const authorizationUri = oauth2.authorizationCode.authorizeURL(provider.authorizeUrl);
-  res.send(authorizationUri);
+exports.initHandler = function() {
+  provider.callbackUrl = config.get('callbackUrl');
+  provider.credentials = config.get('credentials');
+  provider.authorizeUrl = config.get('authorizeUrl');
+  oauth2 = oauth2.create(provider.credentials);
 };
 
-const generateCallbackHtml = (token) => {
-  token = JSON.stringify(token);
-  return '<!DOCTYPE html>'+
-  '<html lang="en">'+
-  '<head>'+
-  '    <meta charset="UTF-8">'+
-  '    <meta name="viewport" content="width=device-width, initial-scale=1.0">'+
-  '    <meta http-equiv="X-UA-Compatible" content="ie=edge">'+
-  '    <title>Document</title>'+
-  '</head>'+
-  '<body>'+
-  '    <script>'+
-  '    window.onload = function() {'+
-  `        window.opener.postMessage(\'${token}\', \'*\')`+
-  '    }'+
-  '    </script>'+
-  '</body>'+
-  '</html>';
+exports.routeHandler = function (req, res, ctx) {
+
+  const path = req.path;
+  switch(path) {
+    case '/refresh':
+      // client should call this route first
+      // will check if existing token for user
+      // and attempt refresh if expired
+      refreshHandler(req, res, ctx);
+      break;
+    case '/auth':
+      // client calls this route to begin auth flow
+      oauth2InitHandler(req, res, ctx);
+      break;
+    case '/auth/callback':
+      // callback route following successful auth
+      // this handler should store the token data
+      // and return a response to the client
+      oauth2CallbackHandler(req, res, ctx);
+      break;
+    case '/logout':
+      logoutHandler(req, res, ctx);
+      break;
+    default:
+      res.status(404).send('Not Found');
+  }
+};
+
+const refreshHandler = (req, res, ctx) => {
+  return tableUtils.setupOAuthTable(ctx)
+    .then((tableId) => {
+      const accessTokensTable = ctx.datastore.table(tableId);
+
+      return accessTokensTable.getRowByExternalId(ctx.token.username)
+        .then((result) => {
+          if (!result.ok) {
+            if (couldNotFindData(result)) {
+              return res.status(401).send();
+            }
+            return res.status(500).send(packageError(result));
+          }
+          if (isEmptyToken(result.data)) {
+            return res.status(204).send();
+          }
+
+          // This create call handles keeping tokens for us in this accessToken
+          // object, but in reality, we would want to save in datastore
+          const tokenData = {
+            access_token: result.data.accessToken,
+            expires_at: result.data.access_expires_at,
+            refresh_token: result.data.refreshToken
+          };
+          const accessTokenObj = oauth2.accessToken.create(tokenData);
+
+          // We preemptively refresh the token to avoid sending a token back
+          // to the client that may expire very soon
+          if (doesTokenNeedRefresh(accessTokenObj.token)) {
+            console.log("Refreshing token");
+            return accessTokenObj.refresh()
+              .then((refreshResult) => {
+                console.log("Refresh success - returning new token");
+                return storeTokenData(accessTokensTable, ctx.token.username, refreshResult.token, res, true);
+              })
+              .catch((err) => {
+                return res.status(500).send(packageError(err.message));
+              });
+          }
+
+          // No refresh needed, return token like normal
+          return res.status(200).send(tokenData.access_token);
+        })
+    })
+};
+
+const couldNotFindData = (errResponse) => {
+  return errResponse.errors[0].message.indexOf('Could not find data') !== -1;
 };
 
 const packageError = (err) => {
   return { error: err };
-}
+};
 
-const createErrorHtml = (err) => {
-  // Nest in an error field for consistency at the client-level
-  // and so if err is a string, we create an object for the callback html
-  return generateCallbackHtml(packageError(err));
-}
+const isEmptyToken = (data) => {
+  return data.accessToken === "" || data.refreshToken === "";
+};
+
+const doesTokenNeedRefresh = (token) => {
+  // Provide a window of time before the actual expiration to
+  // refresh the token
+  const EXPIRATION_WINDOW_IN_SECONDS = 300;
+
+  const expirationTimeInSeconds = token.expires_at.getTime() / 1000;
+  const expirationWindowStart = expirationTimeInSeconds - EXPIRATION_WINDOW_IN_SECONDS;
+
+  // If the start of the window has passed, refresh the token
+  const nowInSeconds = (new Date()).getTime() / 1000;
+  const shouldRefresh = nowInSeconds >= expirationWindowStart;
+
+  return shouldRefresh;
+};
 
 // Stores the token in the datastore and return it to the client if successful
 const storeTokenData = (table, username, tokenData, res, isRefresh) => {
   // Some tokens may not have an 'expires_at' property, so we will
   // calculate it anyway based on the 'expires_in' value
-  var accessTokenObj = oauth2.accessToken.create(tokenData);
+  const accessTokenObj = oauth2.accessToken.create(tokenData);
   return table.upsertRow(username, {
     accessToken: accessTokenObj.token.access_token,
     access_expires_at: accessTokenObj.token.expires_at,
@@ -67,7 +133,21 @@ const storeTokenData = (table, username, tokenData, res, isRefresh) => {
     }
     return res.status(200).send(generateCallbackHtml(accessTokenObj.token));
   });
-}
+};
+
+// Initializes the OAuth2 flow - successful authorization results in redirect to callback export
+const oauth2InitHandler = (req, res, ctx) => {
+  provider.authorizeUrl.redirect_uri = `${provider.callbackUrl}`;
+  provider.authorizeUrl.state = setupStateParam(ctx);
+  const authorizationUri = oauth2.authorizationCode.authorizeURL(provider.authorizeUrl);
+  res.send(authorizationUri);
+};
+
+const setupStateParam = (ctx) => {
+  const obj = provider.authorizeUrl.state ? JSON.parse(provider.authorizeUrl.state) : {};
+  obj.jwt_token = ctx.originalToken;
+  return JSON.stringify(obj);
+};
 
 // Callback handler to take the auth code from first OAuth2 step and get the tokens
 const oauth2CallbackHandler = (req, res, ctx) => {
@@ -96,87 +176,36 @@ const oauth2CallbackHandler = (req, res, ctx) => {
     });
 };
 
-const doesTokenNeedRefresh = (token) => {
-  // Provide a window of time before the actual expiration to
-  // refresh the token
-  const EXPIRATION_WINDOW_IN_SECONDS = 300;
-  
-  const expirationTimeInSeconds = token.expires_at.getTime() / 1000;
-  const expirationWindowStart = expirationTimeInSeconds - EXPIRATION_WINDOW_IN_SECONDS;
-  
-  // If the start of the window has passed, refresh the token
-  const nowInSeconds = (new Date()).getTime() / 1000;
-  const shouldRefresh = nowInSeconds >= expirationWindowStart;
-
-  return shouldRefresh;
+const createErrorHtml = (err) => {
+  // Nest in an error field for consistency at the client-level
+  // and so if err is a string, we create an object for the callback html
+  return generateCallbackHtml(packageError(err));
 };
 
-const isEmptyToken = (data) => {
-  return data.accessToken === "" || data.refreshToken === "";
-};
-
-const couldNotFindData = (errResponse) => {
-  return errResponse.errors[0].message.indexOf('Could not find data') !== -1;
-};
-
-const refreshHandler = (req, res, ctx) => {
-  return tableUtils.setupOAuthTable(ctx)
-    .then((tableId) => {
-      var accessTokensTable = ctx.datastore.table(tableId);
-
-      return accessTokensTable.getRowByExternalId(ctx.token.username)
-        .then((result) => {
-          if (!result.ok) {
-            if (couldNotFindData(result)) {
-              return res.status(401).send();
-            }
-            return res.status(500).send(packageError(result));
-          }
-          if (isEmptyToken(result.data)) {
-            return res.status(204).send();
-          }
-
-          // This create call handles keeping tokens for us in this accessToken
-          // object, but in reality, we would want to save in datastore
-          let tokenData = {
-            access_token: result.data.accessToken,
-            expires_at: result.data.access_expires_at,
-            refresh_token: result.data.refreshToken
-          }
-          var accessTokenObj = oauth2.accessToken.create(tokenData);
-
-          // We preemptively refresh the token to avoid sending a token back
-          // to the client that may expire very soon
-          if (doesTokenNeedRefresh(accessTokenObj.token)) {
-            console.log("Refreshing token");
-            return accessTokenObj.refresh()
-              .then((refreshResult) => {
-                console.log("Refresh success - returning new token");
-                return storeTokenData(accessTokensTable, ctx.token.username, refreshResult.token, res, true);
-              })
-              .catch((err) => {
-                return res.status(500).send(packageError(err.message));
-              });
-          }
-
-          // No refresh needed, return token like normal
-          return res.status(200).send(tokenData.access_token);
-        })
-    })
-};
-
-// Blank tokens and current date (needed for date column validation)
-// for use with logout
-const emptyToken = {
-  accessToken: "",
-  access_expires_at: new Date().toISOString(),
-  refreshToken: ""
+const generateCallbackHtml = (token) => {
+  token = JSON.stringify(token);
+  return '<!DOCTYPE html>'+
+  '<html lang="en">'+
+  '<head>'+
+  '    <meta charset="UTF-8">'+
+  '    <meta name="viewport" content="width=device-width, initial-scale=1.0">'+
+  '    <meta http-equiv="X-UA-Compatible" content="ie=edge">'+
+  '    <title>Document</title>'+
+  '</head>'+
+  '<body>'+
+  '    <script>'+
+  '    window.onload = function() {'+
+  `        window.opener.postMessage(\'${token}\', \'*\')`+
+  '    }'+
+  '    </script>'+
+  '</body>'+
+  '</html>';
 };
 
 const logoutHandler = (req, res, ctx) => {
   return tableUtils.setupOAuthTable(ctx)
     .then((tableId) => {
-      var accessTokensTable = ctx.datastore.table(tableId);
+      const accessTokensTable = ctx.datastore.table(tableId);
 
       return accessTokensTable.editRow(ctx.token.username, emptyToken)
         .then((result) => {
@@ -188,30 +217,10 @@ const logoutHandler = (req, res, ctx) => {
     });
 };
 
-exports.routeHandler = function (req, res, ctx) {
-
-  const path = req.path;
-  switch(path) {
-    case '/refresh':
-      // client should call this route first
-      // will check if existing token for user
-      // and attempt refresh if expired
-      refreshHandler(req, res, ctx);
-      break;
-    case '/auth':
-      // client calls this route to begin auth flow
-      oauth2InitHandler(req, res, ctx);
-      break;
-    case '/auth/callback':
-      // callback route following successful auth
-      // this handler should store the token data
-      // and return a response to the client
-      oauth2CallbackHandler(req, res, ctx);
-      break;
-    case '/logout':
-      logoutHandler(req, res, ctx);
-      break;
-    default: 
-      res.status(404).send('Not Found');
-  }
+// Blank tokens and current date (needed for date column validation)
+// for use with logout
+const emptyToken = {
+  accessToken: "",
+  access_expires_at: new Date().toISOString(),
+  refreshToken: ""
 };

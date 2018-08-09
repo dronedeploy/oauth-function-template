@@ -1,0 +1,24 @@
+service: oauth-service
+app: # <app/plugin slug goes here>
+provider:
+  name: dronedeploy
+
+#
+# Specifying handlerPath allows for a nice, organized, nested
+# directory structure for development. The DroneDeploy-CLI will
+# use the handlerPath and package.artifact properties for
+# building deployable functions
+#
+functions:
+  oauth-function:
+    handler: oauth
+    name: "OAuth Function"
+    memory: 128
+
+plugins:
+  - "@dronedeploy/dronedeploy-cli"
+
+package:
+  exclude:
+    - node_modules/**
+    - public/**

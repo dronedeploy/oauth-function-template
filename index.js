@@ -1,16 +1,28 @@
 'use strict';
-require('dotenv').config()
 
-global.APP_SLUG = process.env.APP_SLUG || undefined;
+global.APP_ID = process.env.APP_ID || undefined;
 
 const bootstrap = require('@dronedeploy/function-wrapper');
-const provider = require('./provider');
+const config = require('./config.json');
 const handler = require('./handler');
+const { setConfig } = require('./oauth-config');
 
-let config = require('./config.json');
+exports.createOAuth = function (configuration) {
+  addClientSecretsToConfiguration(configuration);
+  setConfig(configuration);
+  handler.initHandler();
+  return oauth;
+};
 
-exports.oauth = function (req, res) {
-  if (!global.APP_SLUG) {
+const addClientSecretsToConfiguration = (configuration) => {
+  configuration.credentials.client = {
+    id: process.env.CLIENT_ID,
+    secret: process.env.CLIENT_SECRET
+  };
+};
+
+const oauth = function (req, res) {
+  if (!global.APP_ID) {
     const msg = 'App slug not available, did you deploy using DroneDeploy-Cli?';
     console.error(msg);
     res.status(500).send(msg)
@@ -23,4 +35,4 @@ exports.oauth = function (req, res) {
     }
     handler.routeHandler(req, res, ctx);
   });
-}
+};

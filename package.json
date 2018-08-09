@@ -1,9 +1,10 @@
 {
+  "name": "oauth-function-template",
+  "version": "1.0.0",
+  "main": "index.js",
   "dependencies": {
-    "@google-cloud/debug-agent": "2.4.0",
-    "convict": "4.2.0",
-    "dotenv": "5.0.1",
     "@dronedeploy/function-wrapper": "1.1.2",
+    "convict": "4.2.0",
     "simple-oauth2": "1.5.2",
     "string-format": "2.0.0"
   }

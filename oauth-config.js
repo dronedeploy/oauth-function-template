@@ -1,8 +1,8 @@
+const convict = require('convict');
 const stringFormat = require('string-format');
-var convict = require('convict');
- 
+
 // Define a schema
-var config = convict({
+const config = convict({
   callbackUrl: {
     doc: "Callback url to be used during the OAuth flow",
     format: String,
@@ -65,11 +65,15 @@ var config = convict({
   }
 });
 
-config.loadFile('./provider-oauth-config.json');
-// This formats the callback url dynamically based on the deployed function
-// name. For example the function name of fn-123456789 would be inserted into
-// the templated spot in the callback url https://dronedeployfunctions.com/{}/route
-config.set('callbackUrl', stringFormat(config.get('callbackUrl'), process.env.FUNCTION_NAME));
-config.set('authorizeUrl.redirect_uri', config.get('callbackUrl'));
+module.exports.setConfig = function(configuration) {
+  config.load(configuration);
+  config.validate({allowed: 'strict'});
 
-module.exports = config;
+  // This formats the callback url dynamically based on the deployed function
+  // name. For example the function name of fn-123456789 would be inserted into
+  // the templated spot in the callback url https://dronedeployfunctions.com/{}/route
+  config.set('callbackUrl', stringFormat(config.get('callbackUrl'), process.env.FUNCTION_NAME));
+  config.set('authorizeUrl.redirect_uri', config.get('callbackUrl'));
+};
+
+module.exports.config = config;
