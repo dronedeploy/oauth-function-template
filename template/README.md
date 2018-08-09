@@ -21,7 +21,3 @@ CLIENT_SECRET=4095hjfhfjhfeihf3jho3j4hgo34j
 The `authorizeUrl` section pertains to the provider url responsible for authorizing the user. The `scope`
 field is the only **required** field, but additional fields can be added as needed by the provider. Any
 additional fields will be included as query params (`key=value`) for the authorize request.
-
-## Production Deployment Steps
-1. Follow the "Quick Start" instructions for [DroneDeploy CLI](https://github.com/dronedeploy/dronedeploy-cli)
-2. Using the `/template` directory as your template location will create a new OAuth function template from which to work
