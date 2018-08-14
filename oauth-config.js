@@ -61,6 +61,11 @@ const config = convict({
       doc: "State parameter for oauth 2.0 specification - for DD-based functions, must be stringified JSON because it passes DD JWT data inside",
       format: String,
       default: undefined
+    },
+    page: {
+      doc: "Page parameter",
+      format: String,
+      default: undefined
     }
   }
 });
