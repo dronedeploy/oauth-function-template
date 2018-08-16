@@ -61,18 +61,12 @@ const config = convict({
       doc: "State parameter for oauth 2.0 specification - for DD-based functions, must be stringified JSON because it passes DD JWT data inside",
       format: String,
       default: undefined
-    },
-    page: {
-      doc: "Page parameter",
-      format: String,
-      default: undefined
     }
   }
 });
 
 module.exports.setConfig = function(configuration) {
   config.load(configuration);
-  config.validate({allowed: 'strict'});
 
   // This formats the callback url dynamically based on the deployed function
   // name. For example the function name of fn-123456789 would be inserted into
