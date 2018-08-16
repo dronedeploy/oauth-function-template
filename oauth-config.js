@@ -67,7 +67,6 @@ const config = convict({
 
 module.exports.setConfig = function(configuration) {
   config.load(configuration);
-  config.validate({allowed: 'strict'});
 
   // This formats the callback url dynamically based on the deployed function
   // name. For example the function name of fn-123456789 would be inserted into
