@@ -31,6 +31,9 @@ exports.routeHandler = function (req, res, ctx) {
       // and return a response to the client
       oauth2CallbackHandler(req, res, ctx);
       break;
+    case '/token':
+      storeTokenHandler(req, res, ctx);
+      break;
     case '/logout':
       logoutHandler(req, res, ctx);
       break;
@@ -117,36 +120,35 @@ const storeTokenData = (table, username, tokenData, res, isRefresh) => {
   // Some tokens may not have an 'expires_at' property, so we will
   // calculate it anyway based on the 'expires_in' value
   const accessTokenObj = oauth2.accessToken.create(tokenData);
-  return table.upsertRow(username, {
+  return table.upsertRow(username, createTokenObject(tokenData))
+    .then((rowData) => {
+      if (!rowData.ok) {
+        // Problem storing the access token which will
+        // impact potential future api calls - send error
+        throw new Error(JSON.stringify(rowData.errors[0]));
+      }
+
+      if (isRefresh) {
+        return res.status(200).send(accessTokenObj.token);
+      }
+      return res.status(200).send(generateCallbackHtml(accessTokenObj.token));
+    });
+};
+
+const createTokenObject = (tokenData) => {
+  const accessTokenObj = oauth2.accessToken.create(tokenData);
+  return {
     accessToken: accessTokenObj.token.access_token,
     access_expires_at: accessTokenObj.token.expires_at,
-    refreshToken: accessTokenObj.token.refresh_token}
-  ).then((rowData) => {
-    if (!rowData.ok) {
-      // Problem storing the access token which will
-      // impact potential future api calls - send error
-      throw new Error(JSON.stringify(rowData.errors[0]));
-    }
-
-    if (isRefresh) {
-      return res.status(200).send(accessTokenObj.token);
-    }
-    return res.status(200).send(generateCallbackHtml(accessTokenObj.token));
-  });
+    refreshToken: accessTokenObj.token.refresh_token,
+  };
 };
 
 // Initializes the OAuth2 flow - successful authorization results in redirect to callback export
 const oauth2InitHandler = (req, res, ctx) => {
   provider.authorizeUrl.redirect_uri = `${provider.callbackUrl}`;
-  provider.authorizeUrl.state = setupStateParam(ctx);
   const authorizationUri = oauth2.authorizationCode.authorizeURL(provider.authorizeUrl);
   res.send(authorizationUri);
-};
-
-const setupStateParam = (ctx) => {
-  const obj = provider.authorizeUrl.state ? JSON.parse(provider.authorizeUrl.state) : {};
-  obj.jwt_token = ctx.originalToken;
-  return JSON.stringify(obj);
 };
 
 // Callback handler to take the auth code from first OAuth2 step and get the tokens
@@ -159,20 +161,44 @@ const oauth2CallbackHandler = (req, res, ctx) => {
   // Save the access token
   return oauth2.authorizationCode.getToken(tokenConfig)
     .then((result) => {
-      // Result will contain: user, access token and refresh token
-      // Get our oauth table and store the token data
-      return tableUtils.setupOAuthTable(ctx)
-        .then((tableId) => {
-          var accessTokensTable = ctx.datastore.table(tableId);
-
-          // we store the access token data by associating
-          // it with the user on the function jwt auth token
-          return storeTokenData(accessTokensTable, ctx.token.username, result, res);
-        });
+      return res.status(200).send(generateCallbackHtml(createTokenObject(result)));
     })
     .catch((error) => {
-      console.log('Access Token Error', error.message);
-      res.status(500).send(createErrorHtml(error.message));
+      console.log('OAuth Callback Error', error.message);
+      return res.status(500).send(createErrorHtml(error.message));
+    });
+};
+
+const storeTokenHandler = (req, res, ctx) => {
+  // Make sure this is called with the proper method
+  if (req.method !== 'POST' && req.method !== 'PUT') {
+    return res.status(400).send(createErrorHtml('Invalid request method - please use POST or PUT'));
+  }
+
+  // Make sure user has passed correct data parameter
+  if (!req.body || !req.body.token) {
+    return res.status(400).send(createErrorHtml('Missing token body in request'));
+  }
+
+  // Make sure data passed actually converts properly
+  try {
+    createTokenObject(req.body.token);
+  } catch (e) {
+    return res.status(500).send(createErrorHtml(e.message));
+  }
+
+  // Get our oauth table and store the token data
+  return tableUtils.setupOAuthTable(ctx)
+    .then((tableId) => {
+      var accessTokensTable = ctx.datastore.table(tableId);
+
+      // we store the access token data by associating
+      // it with the user on the function jwt auth token
+      return storeTokenData(accessTokensTable, ctx.token.username, req.body.token, res);
+    })
+    .catch((error) => {
+      console.log('Error storing Access Token', error.message);
+      return res.status(500).send(createErrorHtml(error.message));
     });
 };
 

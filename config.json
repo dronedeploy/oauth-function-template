@@ -1,5 +1,6 @@
 {
   "authRequired": true,
+  "ignoreAuthRoutes": ["/auth/callback"],
   "mockToken": false,
   "config": {
     "cors": {
