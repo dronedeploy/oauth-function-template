@@ -170,25 +170,25 @@ const oauth2CallbackHandler = (req, res, ctx) => {
 };
 
 const storeTokenHandler = (req, res, ctx) => {
-  console.log(req.body);
-  console.log(req.body.token);
-  const parsed = JSON.parse(req.body);
-  console.log(parsed);
-  console.log(parsed.token)
-  console.log((!req.body || !req.body.token));
   // Make sure this is called with the proper method
   if (req.method !== 'POST' && req.method !== 'PUT') {
-    return res.status(400).send(createErrorHtml('Invalid request method - please use POST or PUT'));
+    return res.status(400).send(packageError('Invalid request method - please use POST or PUT'));
   }
 
+  if (!req.body) {
+    return res.status(400).send(packageError('Missing request body'));
+  }
+
+  const parsed = JSON.parse(req.body);
+
   // Make sure user has passed correct data parameter
-  if (!req.body || !req.body.token) {
-    return res.status(400).send(createErrorHtml('Missing token body in request'));
+  if (!parsed.token) {
+    return res.status(400).send(packageError('Missing token body in request'));
   }
 
   // Make sure data passed actually converts properly
   try {
-    createTokenObject(req.body.token);
+    createTokenObject(parsed.token);
   } catch (e) {
     return res.status(500).send(createErrorHtml(e.message));
   }
@@ -200,11 +200,11 @@ const storeTokenHandler = (req, res, ctx) => {
 
       // we store the access token data by associating
       // it with the user on the function jwt auth token
-      return storeTokenData(accessTokensTable, ctx.token.username, req.body.token, res);
+      return storeTokenData(accessTokensTable, ctx.token.username, parsed.token, res);
     })
     .catch((error) => {
       console.log('Error storing Access Token', error.message);
-      return res.status(500).send(createErrorHtml(error.message));
+      return res.status(500).send(packageError(error.message));
     });
 };
 
