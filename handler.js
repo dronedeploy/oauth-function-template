@@ -133,10 +133,7 @@ const storeTokenData = (table, username, tokenData, res, isRefresh) => {
         throw new Error(JSON.stringify(rowData.errors[0]));
       }
 
-      if (isRefresh) {
-        return res.status(200).send(accessTokenObj.token);
-      }
-      return res.status(200).send(generateCallbackHtml(accessTokenObj.token));
+      return res.status(200).send(accessTokenObj.token);
     });
 };
 
