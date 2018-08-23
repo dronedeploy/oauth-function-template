@@ -129,8 +129,11 @@ const storeTokenData = (table, username, tokenData, res, isRefresh) => {
   // calculate it anyway based on the 'expires_in' value
   const accessTokenObj = oauth2.accessToken.create(tokenData);
   console.log(`storeTokenData::accessTokenObj = ${JSON.stringify(accessTokenObj)}`);
-  return table.upsertRow(username, createTokenObject(tokenData))
-    .then((rowData) => {
+  return table.upsertRow(username, {
+    accessToken: accessTokenObj.token.access_token,
+    access_expires_at: accessTokenObj.token.expires_at,
+    refreshToken: accessTokenObj.token.refresh_token}
+  ).then((rowData) => {
       console.log(`storeTokenData::upsert result - ${JSON.stringify(rowData)}`);
       if (!rowData.ok) {
         // Problem storing the access token which will
@@ -141,17 +144,6 @@ const storeTokenData = (table, username, tokenData, res, isRefresh) => {
       console.log(`storeTokenData returning 200 ${JSON.stringify(accessTokenObj.token)}`);
       return res.status(200).send(accessTokenObj.token);
     });
-};
-
-const createTokenObject = (tokenData) => {
-  const accessTokenObj = oauth2.accessToken.create(tokenData);
-  const res = {
-    accessToken: accessTokenObj.token.access_token,
-    access_expires_at: accessTokenObj.token.expires_at,
-    refreshToken: accessTokenObj.token.refresh_token,
-  };
-  console.log(`createTokenObject returning ${JSON.stringify(res)}`);
-  return res;
 };
 
 // Initializes the OAuth2 flow - successful authorization results in redirect to callback export
@@ -171,7 +163,7 @@ const oauth2CallbackHandler = (req, res, ctx) => {
   // Save the access token
   return oauth2.authorizationCode.getToken(tokenConfig)
     .then((result) => {
-      return res.status(200).send(generateCallbackHtml(createTokenObject(result)));
+      return res.status(200).send(generateCallbackHtml(oauth2.accessToken.create(result).token));
     })
     .catch((error) => {
       console.log('OAuth Callback Error', error.message);
@@ -196,14 +188,6 @@ const storeTokenHandler = (req, res, ctx) => {
   // Make sure user has passed correct data parameter
   if (!parsed.token) {
     return res.status(400).send(packageError('Missing token body in request'));
-  }
-
-  // Make sure data passed actually converts properly
-  try {
-    createTokenObject(parsed.token);
-    console.log('Token content ok')
-  } catch (e) {
-    return res.status(500).send(packageError(e.message));
   }
 
   // Get our oauth table and store the token data
