@@ -100,7 +100,9 @@ const packageError = (err) => {
 };
 
 const isEmptyToken = (data) => {
-  return data.accessToken === "" || data.refreshToken === "";
+  const isUndefined = (!data.accessToken || !data.refreshToken);
+  const isEmpty = (data.accessToken === "" || data.refreshToken === "");
+  return isUndefined || isEmpty;
 };
 
 const doesTokenNeedRefresh = (token) => {
