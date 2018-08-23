@@ -170,6 +170,8 @@ const oauth2CallbackHandler = (req, res, ctx) => {
 };
 
 const storeTokenHandler = (req, res, ctx) => {
+  console.log(req);
+  console.log(req.body);
   // Make sure this is called with the proper method
   if (req.method !== 'POST' && req.method !== 'PUT') {
     return res.status(400).send(createErrorHtml('Invalid request method - please use POST or PUT'));
