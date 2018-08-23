@@ -195,7 +195,7 @@ const storeTokenHandler = (req, res, ctx) => {
   try {
     createTokenObject(parsed.token);
   } catch (e) {
-    return res.status(500).send(createErrorHtml(e.message));
+    return res.status(500).send(packageError(e.message));
   }
 
   // Get our oauth table and store the token data
