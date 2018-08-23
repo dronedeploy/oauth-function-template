@@ -66,9 +66,8 @@ const refreshHandler = (req, res, ctx) => {
             expires_at: result.data.access_expires_at,
             refresh_token: result.data.refreshToken
           };
-          console.log(tokenData);
           const accessTokenObj = oauth2.accessToken.create(tokenData);
-          console.log(accessTokenObj);
+
           // We preemptively refresh the token to avoid sending a token back
           // to the client that may expire very soon
           if (doesTokenNeedRefresh(accessTokenObj.token)) {
@@ -79,7 +78,6 @@ const refreshHandler = (req, res, ctx) => {
                 return storeTokenData(accessTokensTable, ctx.token.username, refreshResult.token, res, true);
               })
               .catch((err) => {
-                console.log(err);
                 return res.status(500).send(packageError(err.message));
               });
           }
@@ -129,14 +127,14 @@ const storeTokenData = (table, username, tokenData, res, isRefresh) => {
     access_expires_at: accessTokenObj.token.expires_at,
     refreshToken: accessTokenObj.token.refresh_token}
   ).then((rowData) => {
-      if (!rowData.ok) {
-        // Problem storing the access token which will
-        // impact potential future api calls - send error
-        throw new Error(JSON.stringify(rowData.errors[0]));
-      }
+    if (!rowData.ok) {
+      // Problem storing the access token which will
+      // impact potential future api calls - send error
+      throw new Error(JSON.stringify(rowData.errors[0]));
+    }
 
-      return res.status(200).send(accessTokenObj.token);
-    });
+    return res.status(200).send(accessTokenObj.token);
+  });
 };
 
 // Initializes the OAuth2 flow - successful authorization results in redirect to callback export
