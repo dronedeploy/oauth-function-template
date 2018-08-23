@@ -45,7 +45,6 @@ exports.routeHandler = function (req, res, ctx) {
 const refreshHandler = (req, res, ctx) => {
   return tableUtils.setupOAuthTable(ctx)
     .then((tableId) => {
-      console.log(`refreshHandler OAuth table id: ${tableId}`);
       const accessTokensTable = ctx.datastore.table(tableId);
 
       console.log(`refreshHandler - attempting datastore get with ${ctx.token.username}`);
@@ -89,7 +88,7 @@ const refreshHandler = (req, res, ctx) => {
           }
 
           // No refresh needed, return token like normal
-          console.log(`refreshHandler - no refresh needed returning ${tokenData.access_token}`);
+          console.log(`refreshHandler - no refresh needed returning ${JSON.stringify(tokenData.access_token)}`);
           return res.status(200).send(tokenData.access_token);
         })
     })
@@ -129,17 +128,17 @@ const storeTokenData = (table, username, tokenData, res, isRefresh) => {
   // Some tokens may not have an 'expires_at' property, so we will
   // calculate it anyway based on the 'expires_in' value
   const accessTokenObj = oauth2.accessToken.create(tokenData);
-  console.log(`storeTokenData::accessTokenObj = ${accessTokenObj}`);
+  console.log(`storeTokenData::accessTokenObj = ${JSON.stringify(accessTokenObj)}`);
   return table.upsertRow(username, createTokenObject(tokenData))
     .then((rowData) => {
-      console.log(`storeTokenData::upsert result - ${rowData}`);
+      console.log(`storeTokenData::upsert result - ${JSON.stringify(rowData)}`);
       if (!rowData.ok) {
         // Problem storing the access token which will
         // impact potential future api calls - send error
         throw new Error(JSON.stringify(rowData.errors[0]));
       }
 
-      console.log(`storeTokenData returning 200 ${accessTokenObj.token}`);
+      console.log(`storeTokenData returning 200 ${JSON.stringify(accessTokenObj.token)}`);
       return res.status(200).send(accessTokenObj.token);
     });
 };
@@ -151,7 +150,7 @@ const createTokenObject = (tokenData) => {
     access_expires_at: accessTokenObj.token.expires_at,
     refreshToken: accessTokenObj.token.refresh_token,
   };
-  console.log(`createTokenObject returning ${res}`);
+  console.log(`createTokenObject returning ${JSON.stringify(res)}`);
   return res;
 };
 
@@ -192,7 +191,7 @@ const storeTokenHandler = (req, res, ctx) => {
   }
 
   const parsed = JSON.parse(req.body);
-  console.log(`Parsed request.body: ${parsed}`);
+  console.log(`Parsed request.body: ${JSON.stringify(parsed)}`);
 
   // Make sure user has passed correct data parameter
   if (!parsed.token) {
@@ -210,12 +209,11 @@ const storeTokenHandler = (req, res, ctx) => {
   // Get our oauth table and store the token data
   return tableUtils.setupOAuthTable(ctx)
     .then((tableId) => {
-      console.log(`OAuth TableId: ${tableId}`);
       var accessTokensTable = ctx.datastore.table(tableId);
 
       // we store the access token data by associating
       // it with the user on the function jwt auth token
-      console.log(`Calling storeTokenData with: ${ctx.token.username} and ${parsed.token}`);
+      console.log(`Calling storeTokenData with: ${ctx.token.username} and ${JSON.stringify(parsed.token)}`);
       return storeTokenData(accessTokensTable, ctx.token.username, parsed.token, res);
     })
     .catch((error) => {
