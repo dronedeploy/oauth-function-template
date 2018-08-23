@@ -172,6 +172,9 @@ const oauth2CallbackHandler = (req, res, ctx) => {
 const storeTokenHandler = (req, res, ctx) => {
   console.log(req.body);
   console.log(req.body.token);
+  const parsed = JSON.parse(req.body);
+  console.log(parsed);
+  console.log(parsed.token)
   console.log((!req.body || !req.body.token));
   // Make sure this is called with the proper method
   if (req.method !== 'POST' && req.method !== 'PUT') {
