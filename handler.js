@@ -49,6 +49,7 @@ const refreshHandler = (req, res, ctx) => {
 
       return accessTokensTable.getRowByExternalId(ctx.token.username)
         .then((result) => {
+          console.log(result);
           if (!result.ok) {
             if (couldNotFindData(result)) {
               return res.status(401).send();
@@ -66,8 +67,9 @@ const refreshHandler = (req, res, ctx) => {
             expires_at: result.data.access_expires_at,
             refresh_token: result.data.refreshToken
           };
+          console.log(tokenData);
           const accessTokenObj = oauth2.accessToken.create(tokenData);
-
+          console.log(accessTokenObj);
           // We preemptively refresh the token to avoid sending a token back
           // to the client that may expire very soon
           if (doesTokenNeedRefresh(accessTokenObj.token)) {
@@ -78,6 +80,7 @@ const refreshHandler = (req, res, ctx) => {
                 return storeTokenData(accessTokensTable, ctx.token.username, refreshResult.token, res, true);
               })
               .catch((err) => {
+                console.log(err);
                 return res.status(500).send(packageError(err.message));
               });
           }
