@@ -1,9 +1,9 @@
 {
   "name": "oauth-function-template",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "dependencies": {
-    "@dronedeploy/function-wrapper": "1.1.2",
+    "@dronedeploy/function-wrapper": "1.1.6",
     "convict": "4.2.0",
     "simple-oauth2": "1.5.2",
     "string-format": "2.0.0"
