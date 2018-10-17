@@ -45,6 +45,13 @@ const config = convict({
         default: undefined
       }
     },
+    options: {
+      useBasicAuthorizationHeader: {
+        doc: "Whether or not the Basic Authorization header should be sent at the token request",
+        format: "Boolean",
+        default: undefined
+      }
+    }
   },
   authorizeUrl: {
     redirect_uri: {
