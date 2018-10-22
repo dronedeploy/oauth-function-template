@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { createOAuth } = require('oauth-function-template');
+const { createOAuth } = require('@dronedeploy/oauth-function-template');
 
 const configuration = {
   callbackUrl: 'https://dronedeployfunctions.com/{}/auth/callback',
