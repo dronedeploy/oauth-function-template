@@ -57,7 +57,7 @@ let ACCESS_TOKEN_COLUMN = {
   input: {
     columnType: "TEXT",
     name: "accessToken",
-    textLength: 512,
+    textLength: 1024,
     textEncrypted: true,
     description: "Holds the current access token"
   }
