@@ -1,5 +1,5 @@
 {
-  "name": "oauth-function-template",
+  "name": "@dronedeploy/oauth-function-template",
   "version": "1.0.3",
   "description": "Function template providing configurable OAuth 2.0 support for Dronedeploy Functions",
   "homepage": "https://github.com/dronedeploy/oauth-function-template",
