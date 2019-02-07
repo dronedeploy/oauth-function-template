@@ -2,7 +2,7 @@ const convict = require('convict');
 const stringFormat = require('string-format');
 
 // Define a schema
-const config = convict({
+const SCHEMA = {
   callbackUrl: {
     doc: "Callback url to be used during the OAuth flow",
     format: String,
@@ -64,17 +64,38 @@ const config = convict({
       format: String,
       default: undefined
     }
-  }
-});
-
-module.exports.setConfig = function(configuration) {
-  config.load(configuration);
-
-  // This formats the callback url dynamically based on the deployed function
-  // name. For example the function name of fn-123456789 would be inserted into
-  // the templated spot in the callback url https://dronedeployfunctions.com/{}/route
-  config.set('callbackUrl', stringFormat(config.get('callbackUrl'), process.env.FUNCTION_NAME));
-  config.set('authorizeUrl.redirect_uri', config.get('callbackUrl'));
+  },
+  tokenConfig: {
+    scope: {
+      doc: "Authorization scope being requested from the OAuth provider",
+      format: String,
+      default: undefined
+    }
+  },
 };
 
-module.exports.config = config;
+module.exports.createConfig = (configuration) => {
+  const config = convict(SCHEMA);
+  config.load(configuration);
+
+  if (!(process.env.CLIENT_ID)) {
+    throw new Error('CLIENT_ID environment variable not set');
+  }
+  if (!(process.env.CLIENT_SECRET)) {
+    throw new Error('CLIENT_SECRET environment variable not set');
+  }
+
+  config.set('credentials.client.id', process.env.CLIENT_ID);
+  config.set('credentials.client.secret', process.env.CLIENT_SECRET);
+
+  if (config.get('callbackUrl')) {
+    // This formats the callback url dynamically based on the deployed function
+    // name. For example the function name of fn-123456789 would be inserted into
+    // the templated spot in the callback url https://dronedeployfunctions.com/{}/route
+    config.set('callbackUrl', stringFormat(config.get('callbackUrl'), process.env.FUNCTION_NAME));
+    config.set('authorizeUrl.redirect_uri', config.get('callbackUrl'));
+  }
+
+  return config;
+};
+
