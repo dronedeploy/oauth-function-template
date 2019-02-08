@@ -77,7 +77,7 @@ const refreshHandler = (req, res, ctx) => {
             return accessTokenObj.refresh()
               .then((refreshResult) => {
                 console.log("Refresh success - returning new token");
-                return storeTokenData(accessTokensTable, storageTokenInfo, refreshResult.token, res, true);
+                return storeTokenData(accessTokensTable, storageTokenInfo, refreshResult.token, res);
               })
               .catch((err) => {
                 return res.status(500).send(packageError(err.message));
@@ -91,7 +91,7 @@ const refreshHandler = (req, res, ctx) => {
 };
 
 const getStorageTokenInfo = (req, ctx) => {
-  const isServiceAccount = req.query.service_account ? JSON.parse(req.query.service_account) : undefined;
+  const isServiceAccount = req.query.service_account === 'true';
   return {
     externalId: isServiceAccount ? SERVICE_ACCOUNT_EXTERNAL_KEY : ctx.token.username,
     returnTokenBack: !isServiceAccount,
@@ -128,7 +128,7 @@ const doesTokenNeedRefresh = (token) => {
 };
 
 // Stores the token in the datastore and return it to the client if successful
-const storeTokenData = (table, storageTokenInfo, tokenData, res, isRefresh) => {
+const storeTokenData = (table, storageTokenInfo, tokenData, res) => {
   // Some tokens may not have an 'expires_at' property, so we will
   // calculate it anyway based on the 'expires_in' value
   const accessTokenObj = oauth2.accessToken.create(tokenData);
@@ -137,7 +137,6 @@ const storeTokenData = (table, storageTokenInfo, tokenData, res, isRefresh) => {
     access_expires_at: accessTokenObj.token.expires_at,
     refreshToken: accessTokenObj.token.refresh_token}
   ).then((rowData) => {
-    console.log(`\nROW_DATA: ${JSON.stringify(rowData)}\n`);
     if (!rowData.ok) {
       // Problem storing the access token which will
       // impact potential future api calls - send error
@@ -199,7 +198,7 @@ const storeTokenHandler = (req, res, ctx) => {
 
       // we store the access token data by associating
       // it with the user on the function jwt auth token
-      return storeTokenData(accessTokensTable, storageTokenInfo, parsed.token, res, false);
+      return storeTokenData(accessTokensTable, storageTokenInfo, parsed.token, res);
     })
     .catch((error) => {
       console.log('Error storing Access Token', error.message);
