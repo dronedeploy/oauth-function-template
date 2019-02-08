@@ -31,12 +31,11 @@ class ClientCredentialsHandler {
             const needRefresh = !row.ok || this.doesTokenNeedRefresh(row.data);
             if (needRefresh) {
               return this.refreshClientCredentials(this.tokenConfig)
-                .then((tokenObj) => this.storeClientCredentialsToken(table, tokenObj))
-                .then((tokenObj) => (tokenObj.accessToken));
+                .then((tokenObj) => this.storeClientCredentialsToken(table, tokenObj));
             }
-            return Promise.resolve(row.data.accessToken);
+            return Promise.resolve();
           })
-          .then((accessToken) => res.status(200).send(accessToken));
+          .then(() => res.status(200).send());
       })
       .catch((error) => {
         const msg = 'Refresh client credentials token failed';
@@ -64,13 +63,11 @@ class ClientCredentialsHandler {
   }
 
   storeClientCredentialsToken(table, token) {
-    console.log('storeClientCredentialsToken', token);
     return table.upsertRow(this.datastoreExternalId, token)
       .then((rowData) => {
         if (!rowData.ok) {
           throw new Error(`An error occured while updating token data in Datastore: ${JSON.stringify(rowData.errors)}`);
         }
-      })
-      .then(() => (token));
+      });
   }
 }
