@@ -2,6 +2,7 @@ let oauth2 = require('simple-oauth2');
 const tableUtils = require('../datastore/table');
 
 const provider = {};
+const SERVICE_ACCOUNT_EXTERNAL_KEY = 'serviceAccount';
 
 exports.initHandler = function(config) {
   provider.callbackUrl = config.get('callbackUrl');
@@ -22,8 +23,9 @@ const refreshHandler = (req, res, ctx) => {
   return tableUtils.setupOAuthTable(ctx)
     .then((tableId) => {
       const accessTokensTable = ctx.datastore.table(tableId);
+      const storageTokenInfo = getStorageTokenInfo(req, ctx);
 
-      return accessTokensTable.getRowByExternalId(ctx.token.username)
+      return accessTokensTable.getRowByExternalId(storageTokenInfo.externalId)
         .then((result) => {
           if (!result.ok) {
             if (couldNotFindData(result)) {
@@ -51,7 +53,7 @@ const refreshHandler = (req, res, ctx) => {
             return accessTokenObj.refresh()
               .then((refreshResult) => {
                 console.log("Refresh success - returning new token");
-                return storeTokenData(accessTokensTable, ctx.token.username, refreshResult.token, res, true);
+                return storeTokenData(accessTokensTable, storageTokenInfo, refreshResult.token, res);
               })
               .catch((err) => {
                 return res.status(500).send(packageError(err.message));
@@ -59,9 +61,17 @@ const refreshHandler = (req, res, ctx) => {
           }
 
           // No refresh needed, return token like normal
-          return res.status(200).send(tokenData.access_token);
+          return res.status(200).send(storageTokenInfo.returnTokenBack ? tokenData.access_token : '');
         })
     })
+};
+
+const getStorageTokenInfo = (req, ctx) => {
+  const isServiceAccount = req.query.service_account === 'true';
+  return {
+    externalId: isServiceAccount ? SERVICE_ACCOUNT_EXTERNAL_KEY : ctx.token.username,
+    returnTokenBack: !isServiceAccount,
+  };
 };
 
 const couldNotFindData = (errResponse) => {
@@ -92,11 +102,11 @@ const doesTokenNeedRefresh = (token) => {
 };
 
 // Stores the token in the datastore and return it to the client if successful
-const storeTokenData = (table, username, tokenData, res, isRefresh) => {
+const storeTokenData = (table, storageTokenInfo, tokenData, res) => {
   // Some tokens may not have an 'expires_at' property, so we will
   // calculate it anyway based on the 'expires_in' value
   const accessTokenObj = oauth2.accessToken.create(tokenData);
-  return table.upsertRow(username, {
+  return table.upsertRow(storageTokenInfo.externalId, {
     accessToken: accessTokenObj.token.access_token,
     access_expires_at: accessTokenObj.token.expires_at,
     refreshToken: accessTokenObj.token.refresh_token}
@@ -107,7 +117,7 @@ const storeTokenData = (table, username, tokenData, res, isRefresh) => {
       throw new Error(JSON.stringify(rowData.errors[0]));
     }
 
-    return res.status(200).send(accessTokenObj.token);
+    return res.status(200).send(storageTokenInfo.returnTokenBack ? accessTokenObj.token : '');
   });
 };
 
@@ -153,6 +163,8 @@ const storeTokenHandler = (req, res, ctx) => {
     return res.status(400).send(packageError('Missing token body in request'));
   }
 
+  const storageTokenInfo = getStorageTokenInfo(req, ctx);
+
   // Get our oauth table and store the token data
   return tableUtils.setupOAuthTable(ctx)
     .then((tableId) => {
@@ -160,7 +172,7 @@ const storeTokenHandler = (req, res, ctx) => {
 
       // we store the access token data by associating
       // it with the user on the function jwt auth token
-      return storeTokenData(accessTokensTable, ctx.token.username, parsed.token, res);
+      return storeTokenData(accessTokensTable, storageTokenInfo, parsed.token, res);
     })
     .catch((error) => {
       console.log('Error storing Access Token', error.message);
