@@ -1,45 +1,21 @@
 let oauth2 = require('simple-oauth2');
-const tableUtils = require('./datastore/table');
-const { config } = require('./oauth-config');
+const tableUtils = require('../datastore/table');
 
 const provider = {};
 const SERVICE_ACCOUNT_EXTERNAL_KEY = 'serviceAccount';
 
-exports.initHandler = function() {
+exports.initHandler = function(config) {
   provider.callbackUrl = config.get('callbackUrl');
   provider.credentials = config.get('credentials');
   provider.authorizeUrl = config.get('authorizeUrl');
   oauth2 = oauth2.create(provider.credentials);
-};
 
-exports.routeHandler = function (req, res, ctx) {
-
-  const path = req.path;
-  switch(path) {
-    case '/refresh':
-      // client should call this route first
-      // will check if existing token for user
-      // and attempt refresh if expired
-      refreshHandler(req, res, ctx);
-      break;
-    case '/auth':
-      // client calls this route to begin auth flow
-      oauth2InitHandler(req, res, ctx);
-      break;
-    case '/auth/callback':
-      // callback route following successful auth
-      // this handler should store the token data
-      // and return a response to the client
-      oauth2CallbackHandler(req, res, ctx);
-      break;
-    case '/token':
-      storeTokenHandler(req, res, ctx);
-      break;
-    case '/logout':
-      logoutHandler(req, res, ctx);
-      break;
-    default:
-      res.status(404).send('Not Found');
+  return {
+    '/refresh': refreshHandler,
+    '/auth': oauth2InitHandler,
+    '/auth/callback': oauth2CallbackHandler,
+    '/token': storeTokenHandler,
+    '/logout': logoutHandler,
   }
 };
 
@@ -122,9 +98,7 @@ const doesTokenNeedRefresh = (token) => {
 
   // If the start of the window has passed, refresh the token
   const nowInSeconds = (new Date()).getTime() / 1000;
-  const shouldRefresh = nowInSeconds >= expirationWindowStart;
-
-  return shouldRefresh;
+  return nowInSeconds >= expirationWindowStart;
 };
 
 // Stores the token in the datastore and return it to the client if successful
@@ -246,6 +220,7 @@ const logoutHandler = (req, res, ctx) => {
         });
     });
 };
+
 
 // Blank tokens and current date (needed for date column validation)
 // for use with logout

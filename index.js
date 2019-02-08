@@ -4,35 +4,45 @@ global.APP_ID = process.env.APP_ID || undefined;
 
 const bootstrap = require('@dronedeploy/function-wrapper');
 const config = require('./config.json');
-const handler = require('./handler');
-const { setConfig } = require('./oauth-config');
+const { createConfig } = require('./oauth-config');
 
-exports.createOAuth = function (configuration) {
-  addClientSecretsToConfiguration(configuration);
-  setConfig(configuration);
-  handler.initHandler();
-  return oauth;
-};
+const authorizationCode = require('./handlers/authorizationCode');
+const clientCredentials = require('./handlers/clientCredentials');
 
-const addClientSecretsToConfiguration = (configuration) => {
-  configuration.credentials.client = {
-    id: process.env.CLIENT_ID,
-    secret: process.env.CLIENT_SECRET
-  };
-};
+exports.createOAuth = function ({authorizationCodeSettings, clientCredentialsSettings}) {
+  let paths = {};
 
-const oauth = function (req, res) {
-  if (!global.APP_ID) {
-    const msg = 'App slug not available, did you deploy using DroneDeploy-Cli?';
-    console.error(msg);
-    res.status(500).send(msg)
+  if (authorizationCodeSettings) {
+    paths = authorizationCode.initHandler(createConfig(authorizationCodeSettings));
   }
-  bootstrap(config, req, res, (err, ctx) => {
-    if (err) {
-      console.error(err, err.stack);
-      console.warn('An error occurred during the bootstrapping process. A default response has been sent and code paths have been stopped.');
-      return;
+
+  if (clientCredentialsSettings) {
+    paths = Object.assign(paths, clientCredentials.initHandler(createConfig(clientCredentialsSettings)));
+  }
+
+  return handler(paths);
+};
+
+const handler = function(paths) {
+  return (req, res) => {
+    if (!global.APP_ID) {
+      const msg = 'App ID not available, did you deploy using DroneDeploy-CLI?';
+      console.error(msg);
+      res.status(500).send(msg);
     }
-    handler.routeHandler(req, res, ctx);
-  });
+    bootstrap(config, req, res, (err, ctx) => {
+      if (err) {
+        console.error(err, err.stack);
+        console.warn('An error occurred during the bootstrapping process. A default response has been sent and code paths have been stopped.');
+        return;
+      }
+
+      const pathHandler = paths[req.path];
+      if (pathHandler) {
+        pathHandler(req, res, ctx);
+      } else {
+        res.status(404).send('Not Found');
+      }
+    });
+  }
 };
