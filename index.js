@@ -9,7 +9,9 @@ const { createConfig } = require('./oauth-config');
 const authorizationCode = require('./handlers/authorizationCode');
 const clientCredentials = require('./handlers/clientCredentials');
 
-exports.createOAuth = function ({authorizationCodeSettings, clientCredentialsSettings}) {
+exports.createOAuth = function(configuration) {
+  const authorizationCodeSettings = configuration.authorizationCodeSettings || configuration;
+  const clientCredentialsSettings = configuration.clientCredentialsSettings;
   let paths = {};
 
   if (authorizationCodeSettings) {
