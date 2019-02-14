@@ -10,8 +10,7 @@ const authorizationCode = require('./handlers/authorizationCode');
 const clientCredentials = require('./handlers/clientCredentials');
 
 exports.createOAuth = function(configuration) {
-  const clientCredentialsSettings = configuration.clientCredentialsSettings;
-  const authorizationCodeSettings = (clientCredentialsSettings) ? configuration.authorizationCodeSettings : configuration;
+  const { authorizationCodeSettings, clientCredentialsSettings } = parseConfig(configuration);
   let paths = {};
 
   if (authorizationCodeSettings) {
@@ -23,6 +22,19 @@ exports.createOAuth = function(configuration) {
   }
 
   return handler(paths);
+};
+
+const parseConfig = function (configuration) {
+  const newConfigFormat = configuration.clientCredentialsSettings || configuration.authorizationCodeSettings;
+  if (newConfigFormat) {
+    return {
+      clientCredentialsSettings: configuration.clientCredentialsSettings,
+      authorizationCodeSettings: configuration.authorizationCodeSettings,
+    }
+  }
+  return {
+    authorizationCodeSettings: configuration
+  };
 };
 
 const handler = function(paths) {
