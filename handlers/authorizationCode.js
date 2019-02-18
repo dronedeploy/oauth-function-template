@@ -210,8 +210,9 @@ const logoutHandler = (req, res, ctx) => {
   return tableUtils.setupOAuthTable(ctx)
     .then((tableId) => {
       const accessTokensTable = ctx.datastore.table(tableId);
+      const storageTokenInfo = getStorageTokenInfo(req, ctx);
 
-      return accessTokensTable.editRow(ctx.token.username, emptyToken)
+      return accessTokensTable.editRow(storageTokenInfo.externalId, emptyToken)
         .then((result) => {
           if (!result.ok) {
             return res.status(500).send(createErrorHtml(result.errors[0]));
