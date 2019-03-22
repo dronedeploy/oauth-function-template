@@ -56,7 +56,8 @@ const refreshHandler = (req, res, ctx) => {
                 return storeTokenData(accessTokensTable, storageTokenInfo, refreshResult.token, res);
               })
               .catch((err) => {
-                return res.status(500).send(packageError(err.message));
+                console.log({err});
+                return res.status(401).send(packageError('The authorization code/refresh token is expired or invalid/redirect_uri must have the same value as in the authorization request.'));
               });
           }
 
