@@ -93,9 +93,9 @@ const isEmptyToken = (data) => {
 };
 
 const isAccessTokenValidForever = (data) => {
-  const isRefreshTokenEmpty = data.refreshToken === "";
-  const isAccessTokenGoodForever = data.accessToken !== "" && data.access_expires_at === '1970-01-01T00:00:00.000Z';
-  return isRefreshTokenEmpty && isAccessTokenGoodForever;
+  const isRefreshTokenEmpty = !data.refreshToken;
+  const isForeverAccessToken = !!data.accessToken && data.access_expires_at === '1970-01-01T00:00:00.000Z';
+  return isRefreshTokenEmpty && isForeverAccessToken;
 };
 
 const doesTokenNeedRefresh = (token) => {
