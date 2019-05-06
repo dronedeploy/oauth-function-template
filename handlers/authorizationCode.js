@@ -33,6 +33,9 @@ const refreshHandler = (req, res, ctx) => {
             }
             return res.status(500).send(packageError(result));
           }
+          if (isAccessTokenValidForever(result.data)) {
+            return res.status(200).send();
+          }
           if (isEmptyToken(result.data)) {
             return res.status(204).send();
           }
@@ -87,6 +90,10 @@ const isEmptyToken = (data) => {
   const isUndefined = (!data.accessToken || !data.refreshToken);
   const isEmpty = (data.accessToken === "" || data.refreshToken === "");
   return isUndefined || isEmpty;
+};
+
+const isAccessTokenValidForever = ({ refreshToken, accessToken, access_expires_at }) => {
+  return !refreshToken && !!accessToken && access_expires_at === '1970-01-01T00:00:00.000Z';
 };
 
 const doesTokenNeedRefresh = (token) => {
