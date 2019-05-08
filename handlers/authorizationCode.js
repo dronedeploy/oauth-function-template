@@ -29,7 +29,7 @@ const refreshHandler = (req, res, ctx) => {
         .then((result) => {
           if (!result.ok) {
             if (couldNotFindData(result)) {
-              return res.status(401).send();
+              return res.status(401).send(packageError(result));
             }
             return res.status(500).send(packageError(result));
           }
