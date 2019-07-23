@@ -42,7 +42,7 @@ const refreshHandler = (req, res, ctx) => {
 
               if (!innerAuthorized) {
                   await accessTokensTable.editRow(storageTokenInfo.externalId, emptyToken);
-                  return res.status(401).send();
+                  return res.status(204).send();
               }
           }
 
