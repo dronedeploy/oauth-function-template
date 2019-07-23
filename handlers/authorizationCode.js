@@ -38,9 +38,9 @@ const refreshHandler = (req, res, ctx) => {
 
           if (!!result.data.accessToken) {
 
-              const status = await getInnerAuthorizationResponse(result.data.accessToken);
+              const innerAuthorized = await getInnerAuthorizationResponse(result.data.accessToken);
 
-              if (status === 401 || status === 403) {
+              if (!innerAuthorized) {
                   await accessTokensTable.editRow(storageTokenInfo.externalId, emptyToken);
                   return res.status(401).send();
               }
@@ -84,7 +84,7 @@ const refreshHandler = (req, res, ctx) => {
 };
 
 const getInnerAuthorizationResponse = async (accessToken) => {
-    let status = 200;
+    let authorized = true;
     const url = provider.innerAuthorizationUrl;
     if (url) {
         let options = {
@@ -99,15 +99,15 @@ const getInnerAuthorizationResponse = async (accessToken) => {
         console.info(`Making request: 'GET' ${url}`);
         await fetch(url, options)
             .then((res) => {
-                status = res.status;
+                authorized = res.ok;
             })
             .catch((error) => {
                 console.info({error});
-                status = 401;
+                authorized = false;
                 }
             );
     }
-    return status;
+    return authorized;
 };
 
 const getStorageTokenInfo = (req, ctx) => {
