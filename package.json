@@ -12,6 +12,7 @@
   "dependencies": {
     "@dronedeploy/function-wrapper": "1.1.6",
     "convict": "4.2.0",
+    "node-fetch": "^2.6.0",
     "simple-oauth2": "1.5.2",
     "string-format": "2.0.0"
   }

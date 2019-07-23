@@ -1,5 +1,6 @@
 let oauth2 = require('simple-oauth2');
 const tableUtils = require('../datastore/table');
+let fetch = require('node-fetch');
 
 const provider = {};
 const SERVICE_ACCOUNT_EXTERNAL_KEY = 'serviceAccount';
@@ -8,6 +9,7 @@ exports.initHandler = function(config) {
   provider.callbackUrl = config.get('callbackUrl');
   provider.credentials = config.get('credentials');
   provider.authorizeUrl = config.get('authorizeUrl');
+  provider.innerAuthorizationUrl = config.get('innerAuthorizationUrl');
   oauth2 = oauth2.create(provider.credentials);
 
   return {
@@ -26,13 +28,24 @@ const refreshHandler = (req, res, ctx) => {
       const storageTokenInfo = getStorageTokenInfo(req, ctx);
 
       return accessTokensTable.getRowByExternalId(storageTokenInfo.externalId)
-        .then((result) => {
+        .then(async (result) => {
           if (!result.ok) {
             if (couldNotFindData(result)) {
               return res.status(401).send(packageError(result));
             }
             return res.status(500).send(packageError(result));
           }
+
+          if (!!result.data.accessToken) {
+
+              const status = await getInnerAuthorizationResponse(result.data.accessToken);
+
+              if (status === 401 || status === 403) {
+                  await accessTokensTable.editRow(storageTokenInfo.externalId, emptyToken);
+                  return res.status(401).send();
+              }
+          }
+
           if (isAccessTokenValidForever(result.data)) {
             return res.status(200).send();
           }
@@ -68,6 +81,33 @@ const refreshHandler = (req, res, ctx) => {
           return res.status(200).send(storageTokenInfo.returnTokenBack ? tokenData.access_token : '');
         })
     })
+};
+
+const getInnerAuthorizationResponse = async (accessToken) => {
+    let status = 200;
+    const url = provider.innerAuthorizationUrl;
+    if (url) {
+        let options = {
+            method: 'GET',
+            withCredentials: true,
+            credentials: 'include',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            }
+        };
+        console.info(`Making request: 'GET' ${url}`);
+        await fetch(url, options)
+            .then((res) => {
+                status = res.status;
+            })
+            .catch((error) => {
+                console.info({error});
+                status = 401;
+                }
+            );
+    }
+    return status;
 };
 
 const getStorageTokenInfo = (req, ctx) => {
