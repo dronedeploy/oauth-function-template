@@ -65,6 +65,11 @@ const SCHEMA = {
       default: undefined
     }
   },
+  innerAuthorizationUrl: {
+    doc: "Fully qualified url for inner authorization request made during refresh",
+    format: String,
+    default: undefined
+  },
   tokenConfig: {
     scope: {
       doc: "Authorization scope being requested from the OAuth provider",

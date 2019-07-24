@@ -1,5 +1,6 @@
 let oauth2 = require('simple-oauth2');
 const tableUtils = require('../datastore/table');
+let fetch = require('node-fetch');
 
 const provider = {};
 const SERVICE_ACCOUNT_EXTERNAL_KEY = 'serviceAccount';
@@ -8,6 +9,7 @@ exports.initHandler = function(config) {
   provider.callbackUrl = config.get('callbackUrl');
   provider.credentials = config.get('credentials');
   provider.authorizeUrl = config.get('authorizeUrl');
+  provider.innerAuthorizationUrl = config.get('innerAuthorizationUrl');
   oauth2 = oauth2.create(provider.credentials);
 
   return {
@@ -33,42 +35,77 @@ const refreshHandler = (req, res, ctx) => {
             }
             return res.status(500).send(packageError(result));
           }
-          if (isAccessTokenValidForever(result.data)) {
-            return res.status(200).send();
+          const url = provider.innerAuthorizationUrl;
+          if (url && !!result.data.accessToken) {
+              return getInnerAuthorizationResponse(url, result.data.accessToken)
+                  .then((isOkStatus) => {
+                      if (!isOkStatus) {
+                          accessTokensTable.editRow(storageTokenInfo.externalId, emptyToken);
+                          return res.status(204).send();
+                      } else {
+                          return getStandardAuthorizationResponse(res, result);
+                      }
+                  });
           }
-          if (isEmptyToken(result.data)) {
-            return res.status(204).send();
-          }
-
-          // This create call handles keeping tokens for us in this accessToken
-          // object, but in reality, we would want to save in datastore
-          const tokenData = {
-            access_token: result.data.accessToken,
-            expires_at: result.data.access_expires_at,
-            refresh_token: result.data.refreshToken
-          };
-          const accessTokenObj = oauth2.accessToken.create(tokenData);
-
-          // We preemptively refresh the token to avoid sending a token back
-          // to the client that may expire very soon
-          if (doesTokenNeedRefresh(accessTokenObj.token)) {
-            console.log("Refreshing token");
-            return accessTokenObj.refresh()
-              .then((refreshResult) => {
-                console.log("Refresh success - returning new token");
-                return storeTokenData(accessTokensTable, storageTokenInfo, refreshResult.token, res);
-              })
-              .catch((err) => {
-                console.log({err});
-                return res.status(401).send(packageError('The authorization code/refresh token is expired or invalid/redirect_uri must have the same value as in the authorization request.'));
-              });
-          }
-
-          // No refresh needed, return token like normal
-          return res.status(200).send(storageTokenInfo.returnTokenBack ? tokenData.access_token : '');
+          return getStandardAuthorizationResponse(res, result);
         })
     })
 };
+
+const getInnerAuthorizationResponse = (url, accessToken) => {
+    let options = {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+        }
+    };
+    console.info(`Making request: 'GET' ${url}`);
+    return fetch(url, options)
+        .then((res) => {
+            return res.ok;
+        })
+        .catch((error) => {
+                console.info({error});
+                return false;
+        });
+};
+
+const getStandardAuthorizationResponse = (res, result) => {
+    if (isAccessTokenValidForever(result.data)) {
+        return res.status(200).send();
+    }
+    if (isEmptyToken(result.data)) {
+        return res.status(204).send();
+    }
+
+    // This create call handles keeping tokens for us in this accessToken
+    // object, but in reality, we would want to save in datastore
+    const tokenData = {
+        access_token: result.data.accessToken,
+        expires_at: result.data.access_expires_at,
+        refresh_token: result.data.refreshToken
+    };
+    const accessTokenObj = oauth2.accessToken.create(tokenData);
+
+    // We preemptively refresh the token to avoid sending a token back
+    // to the client that may expire very soon
+    if (doesTokenNeedRefresh(accessTokenObj.token)) {
+        console.log("Refreshing token");
+        return accessTokenObj.refresh()
+            .then((refreshResult) => {
+                console.log("Refresh success - returning new token");
+                return storeTokenData(accessTokensTable, storageTokenInfo, refreshResult.token, res);
+            })
+            .catch((err) => {
+                console.log({err});
+                return res.status(401).send(packageError('The authorization code/refresh token is expired or invalid/redirect_uri must have the same value as in the authorization request.'));
+            });
+    }
+
+    // No refresh needed, return token like normal
+    return res.status(200).send(storageTokenInfo.returnTokenBack ? tokenData.access_token : '');
+}
 
 const getStorageTokenInfo = (req, ctx) => {
   const isServiceAccount = req.query.service_account === 'true';
