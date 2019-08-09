@@ -43,11 +43,11 @@ const refreshHandler = (req, res, ctx) => {
                           accessTokensTable.editRow(storageTokenInfo.externalId, emptyToken);
                           return res.status(204).send();
                       } else {
-                          return getStandardAuthorizationResponse(res, result);
+                        return getStandardAuthorizationResponse(res, result, accessTokensTable, storageTokenInfo);
                       }
                   });
           }
-          return getStandardAuthorizationResponse(res, result);
+          return getStandardAuthorizationResponse(res, result, accessTokensTable, storageTokenInfo);
         })
     })
 };
@@ -71,7 +71,7 @@ const getInnerAuthorizationResponse = (url, accessToken) => {
         });
 };
 
-const getStandardAuthorizationResponse = (res, result) => {
+const getStandardAuthorizationResponse = (res, result, accessTokensTable, storageTokenInfo) => {
     if (isAccessTokenValidForever(result.data)) {
         return res.status(200).send();
     }
@@ -105,7 +105,7 @@ const getStandardAuthorizationResponse = (res, result) => {
 
     // No refresh needed, return token like normal
     return res.status(200).send(storageTokenInfo.returnTokenBack ? tokenData.access_token : '');
-}
+};
 
 const getStorageTokenInfo = (req, ctx) => {
   const isServiceAccount = req.query.service_account === 'true';
