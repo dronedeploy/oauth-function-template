@@ -57,7 +57,7 @@ let ACCESS_TOKEN_COLUMN = {
   input: {
     columnType: "TEXT",
     name: "accessToken",
-    textLength: 1024,
+    textLength: 4096,
     textEncrypted: true,
     description: "Holds the current access token"
   }
@@ -75,16 +75,26 @@ let REFRESH_TOKEN_COLUMN = {
   input: {
     columnType: "TEXT",
     name: "refreshToken",
-    textLength: 512,
+    textLength: 4096,
     textEncrypted: true,
     description: "Holds the current refresh token"
+  }
+};
+
+let ERROR_CODE_COLUMN = {
+  input: {
+    columnType: "NUMBER",
+    name: "errorCode",
+    numberType: 'INTEGER',
+    description: "Holds the latest error code"
   }
 };
 
 let TABLE_COLUMNS = [
   ACCESS_TOKEN_COLUMN,
   TOKEN_EXPIRATION_COLUMN,
-  REFRESH_TOKEN_COLUMN
+  REFRESH_TOKEN_COLUMN,
+  ERROR_CODE_COLUMN,
 ];
 
 module.exports = {

@@ -1,5 +1,6 @@
 const convict = require('convict');
 const stringFormat = require('string-format');
+const _ = require('lodash');
 
 // Define a schema
 const SCHEMA = {
@@ -65,10 +66,27 @@ const SCHEMA = {
       default: undefined
     }
   },
-  innerAuthorizationUrl: {
-    doc: "Fully qualified url for inner authorization request made during refresh",
-    format: String,
-    default: undefined
+  innerAuthorization: {
+    url: {
+      doc: "Fully qualified url for inner authorization request made during refresh",
+      format: String,
+      default: undefined
+    },
+    removeCredentials: {
+      doc: "Whether or not tokens should be removed in case of inner authorization failure",
+      format: "Boolean",
+      default: undefined
+    },
+    headers: {
+      doc: "Optional headers used to request innerAuthorization.url",
+      format: Object,
+      default: undefined
+    },
+    method: {
+      doc: "Optional http method used to request innerAuthorization.url",
+      format: String,
+      default: undefined
+    },
   },
   tokenConfig: {
     scope: {
@@ -77,21 +95,34 @@ const SCHEMA = {
       default: undefined
     }
   },
+  credentialKeys: {
+    clientId: {
+      doc: "Client ID key to match from ENV variables",
+      format: String,
+      default: undefined
+    },
+    clientSecret: {
+      doc: "Client Secret key to match from ENV variables",
+      format: String,
+      default: undefined
+    },
+  }
 };
 
 module.exports.createConfig = (configuration) => {
   const config = convict(SCHEMA);
   config.load(configuration);
-
-  if (!(process.env.CLIENT_ID)) {
-    throw new Error('CLIENT_ID environment variable not set');
+  let clientIdKey = config.has('credentialKeys.clientId') ? config.get('credentialKeys.clientId') : 'CLIENT_ID';
+  if (!(_.get(process.env, clientIdKey))) {
+    throw new Error(`${clientIdKey} environment variable not set`);
   }
-  if (!(process.env.CLIENT_SECRET)) {
-    throw new Error('CLIENT_SECRET environment variable not set');
+  let clientSecretKey = config.has('credentialKeys.clientSecret') ? config.get('credentialKeys.clientSecret') : 'CLIENT_SECRET';
+  if (!(_.get(process.env, clientSecretKey))) {
+    throw new Error(`${clientSecretKey} environment variable not set`);
   }
 
-  config.set('credentials.client.id', process.env.CLIENT_ID);
-  config.set('credentials.client.secret', process.env.CLIENT_SECRET);
+  config.set('credentials.client.id', _.get(process.env, clientIdKey));
+  config.set('credentials.client.secret', _.get(process.env, clientSecretKey));
 
   if (config.get('callbackUrl')) {
     // This formats the callback url dynamically based on the deployed function
