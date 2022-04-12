@@ -21,3 +21,10 @@ Release 1.7.1
 Release 1.7.2
 - Changes
   - Upgraded the convict package to 6.0.0
+
+Release 1.7.3
+- Changes
+  - Upgraded node-fetch to 2.6.7
+  - Upgraded @dronedeploy/function-wrapper to 1.3.0
+  - Adds lock file
+  - Upgraded versions for @dronedeploy/dronedeploy-cli and @dronedeploy/oauth-function-template in template/package.json
