@@ -12,12 +12,15 @@ const _createOAuthTableIfNotExists = (ctx) => {
   return ctx.graphql.query(queries.findTableQuery)
       .then((result) => {
         if (result.errors && result.data.node.table === null) {
+          console.log('Creating OAuth table as it does not exist');
           return _createOAuthTable(ctx)
             .then((tableIdResult) => {
+              console.log('Created OAuth table without columns');
               return createOAuthTableColumns(ctx, tableIdResult);
             });
         }
 
+        console.log('OAuth table exists - no need to create one.');
         return result.data.node.table.id;
       });
 };
@@ -57,7 +60,7 @@ const getOAuthTableColumnsToCreate = (ctx, tableId) => {
       switch (columnsResult.length) {
         case 0:
           return queries.tableColumns;
-        case 3:
+        case queries.tableColumns.length:
           return [];
         default:
           return getMissingColumns(columnsResult);
@@ -66,7 +69,7 @@ const getOAuthTableColumnsToCreate = (ctx, tableId) => {
 };
 
 const createOAuthTableColumns = (ctx, tableId) => {
-
+  console.log('Creating OAuth table columns');
   return getOAuthTableColumnsToCreate(ctx, tableId)
     .then((columns) => {
       // This really shouldn't ever happen, but if it does
@@ -84,8 +87,9 @@ const createOAuthTableColumns = (ctx, tableId) => {
       return Promise.all(tableColumnQueries)
         .then((results) => {
           if (results.some(resultContainsError)) {
-            return Promise.reject('Error creating table columns');
+            return Promise.reject('Error creating OAuth table columns');
           }
+          console.log('OAuth Table columns created');
           return tableId;
         });
     });
