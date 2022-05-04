@@ -28,3 +28,8 @@ Release 1.7.3
   - Upgraded @dronedeploy/function-wrapper to 1.3.0
   - Adds lock file
   - Upgraded versions for @dronedeploy/dronedeploy-cli and @dronedeploy/oauth-function-template in template/package.json
+
+Release 1.7.4
+- Changes
+  - Upgraded @dronedeploy/function-wrapper to 1.3.1
+  - Upgraded versions @dronedeploy/oauth-function-template in template/package.json
