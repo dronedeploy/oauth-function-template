@@ -14,7 +14,7 @@
     "convict": "6.2.3",
     "lodash": "^4.17.15",
     "node-fetch": "^2.6.7",
-    "simple-oauth2": "1.5.2",
+    "simple-oauth2": "2.5.2",
     "string-format": "2.0.0"
   }
 }
