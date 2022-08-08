@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "dotenv": "5.0.1",
-    "@dronedeploy/oauth-function-template": "1.7.4"
+    "@dronedeploy/oauth-function-template": "1.7.6"
   },
   "devDependencies": {
     "@dronedeploy/dronedeploy-cli": "^1.7.6"

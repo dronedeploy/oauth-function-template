@@ -33,3 +33,8 @@ Release 1.7.4
 - Changes
   - Upgraded @dronedeploy/function-wrapper to 1.3.1
   - Upgraded versions @dronedeploy/oauth-function-template in template/package.json
+
+Release 1.7.6
+- Changes
+  - Upgraded simple-oauth2 to 2.5.2
+  - Upgraded versions @dronedeploy/oauth-function-template in template/package.json
