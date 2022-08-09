@@ -47,9 +47,9 @@ const SCHEMA = {
       }
     },
     options: {
-      useBasicAuthorizationHeader: {
-        doc: "Whether or not the Basic Authorization header should be sent at the token request",
-        format: "Boolean",
+      authorizationMethod: {
+        doc: "Indicates the method used to send client ID and Secret. Valid options are header or body. Defaults to header.",
+        format: String,
         default: undefined
       }
     }
