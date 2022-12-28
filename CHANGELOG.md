@@ -43,3 +43,8 @@ Release 1.7.7
 - Changes
   - Fix oauth config schema due to simple-oauth2 upgrade
   - Upgraded versions @dronedeploy/oauth-function-template in template/package.json
+
+Release 1.7.8
+- Changes
+  - Bump @dronedeploy/function-wrapper to v1.3.3
+  - Upgraded versions @dronedeploy/oauth-function-template in template/package.json
