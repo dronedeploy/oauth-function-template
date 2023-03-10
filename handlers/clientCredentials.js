@@ -1,4 +1,4 @@
-const oauth2 = require('simple-oauth2');
+const { ClientCredentials } = require('simple-oauth2');
 const tableUtils = require('../datastore/table');
 
 
@@ -13,7 +13,7 @@ class ClientCredentialsHandler {
     this.datastoreExternalId = 'clientCredentialsToken';
     this.expirationWindowInSeconds = 300;
     this.tokenConfig = config.get('tokenConfig');
-    this.oauth2 = oauth2.create(config.get('credentials'));
+    this.oauth2 = new ClientCredentials(config.get('credentials'));
   }
 
   getRoutes() {
@@ -51,8 +51,8 @@ class ClientCredentialsHandler {
   }
 
   refreshClientCredentials(tokenConfig) {
-    return this.oauth2.clientCredentials.getToken(tokenConfig)
-      .then((result) => this.oauth2.accessToken.create(result))
+    return this.oauth2.getToken(tokenConfig)
+      .then((result) => this.oauth2.createToken(result))
       .then((accessToken) => ({
         accessToken: accessToken.token.access_token,
         access_expires_at: accessToken.token.expires_at,
