@@ -1,10 +1,11 @@
-let oauth2 = require('simple-oauth2');
+const { AuthorizationCode } = require('simple-oauth2');
 const tableUtils = require('../datastore/table');
 let fetch = require('node-fetch');
 const _ = require('lodash');
 
 const provider = {};
 const SERVICE_ACCOUNT_EXTERNAL_KEY = 'serviceAccount';
+let oauth2;
 
 const ERROR_CODES = {
     INNER_AUTHORIZATION_FAILED: { code: 0, message: 'Inner Authorization Failed' },
@@ -15,7 +16,7 @@ exports.initHandler = function(config) {
   provider.credentials = config.get('credentials');
   provider.authorizeUrl = config.get('authorizeUrl');
   provider.innerAuthorization = config.get('innerAuthorization');
-  oauth2 = oauth2.create(provider.credentials);
+  oauth2 = new AuthorizationCode(provider.credentials);
 
   return {
     '/refresh': refreshHandler,
@@ -111,7 +112,7 @@ const getStandardAuthorizationResponse = (res, result, accessTokensTable, storag
         expires_at: result.data.access_expires_at,
         refresh_token: result.data.refreshToken
     };
-    const accessTokenObj = oauth2.accessToken.create(tokenData);
+    const accessTokenObj = oauth2.createToken(tokenData);
 
     // We preemptively refresh the token to avoid sending a token back
     // to the client that may expire very soon
@@ -179,7 +180,7 @@ const doesTokenNeedRefresh = (token) => {
 const storeTokenData = (table, storageTokenInfo, tokenData, res) => {
   // Some tokens may not have an 'expires_at' property, so we will
   // calculate it anyway based on the 'expires_in' value
-  const accessTokenObj = oauth2.accessToken.create(tokenData);
+  const accessTokenObj = oauth2.createToken(tokenData);
   return table.upsertRow(storageTokenInfo.externalId, {
     accessToken: accessTokenObj.token.access_token,
     access_expires_at: accessTokenObj.token.expires_at,
@@ -200,7 +201,7 @@ const storeTokenData = (table, storageTokenInfo, tokenData, res) => {
 // Initializes the OAuth2 flow - successful authorization results in redirect to callback export
 const oauth2InitHandler = (req, res, ctx) => {
   provider.authorizeUrl.redirect_uri = `${provider.callbackUrl}`;
-  const authorizationUri = oauth2.authorizationCode.authorizeURL(provider.authorizeUrl);
+  const authorizationUri = oauth2.authorizeURL(provider.authorizeUrl);
   res.send(authorizationUri);
 };
 
@@ -211,10 +212,10 @@ const oauth2CallbackHandler = (req, res, ctx) => {
     redirect_uri: provider.callbackUrl
   };
 
-  return oauth2.authorizationCode.getToken(tokenConfig)
+  return oauth2.getToken(tokenConfig)
     .then((result) => {
       console.log('Successfuly produced oauth token from authorization code - returning callback html');
-      return res.status(200).send(generateCallbackHtml(oauth2.accessToken.create(result).token));
+      return res.status(200).send(generateCallbackHtml(oauth2.createToken(result).token));
     })
     .catch((error) => {
       console.log('Failure on producing oauth token from authorization code - returning error html ', error.message);
