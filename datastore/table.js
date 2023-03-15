@@ -4,6 +4,8 @@ const queries = require('./queries');
 const _oauthTableSetup = (ctx) => {
   return _createOAuthTableIfNotExists(ctx)
     .catch((err) => {
+      console.log('Creating OAuth table as it does not exist failed');
+      console.log(err);
       throw new Error(err);
     });
 };
@@ -36,6 +38,8 @@ const _createOAuthTable = (ctx) => {
   return ctx.graphql.query(queries.createTableQuery, createInput)
     .then((result) => {
       if (result.errors) {
+        console.log('An error occurred while creating the OAuth Table');
+        console.log(result.errors);
         return Promise.reject(result.errors[0]);
       }
 
