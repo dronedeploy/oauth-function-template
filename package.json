@@ -1,6 +1,6 @@
 {
   "name": "@dronedeploy/oauth-function-template",
-  "version": "1.7.8",
+  "version": "1.7.9",
   "description": "Function template providing configurable OAuth 2.0 support for Dronedeploy Functions",
   "homepage": "https://github.com/dronedeploy/oauth-function-template",
   "repository": {
