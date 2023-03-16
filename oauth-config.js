@@ -3,114 +3,123 @@ const stringFormat = require('string-format');
 const _ = require('lodash');
 
 // Define a schema
-const SCHEMA = {
-  callbackUrl: {
-    doc: "Callback url to be used during the OAuth flow",
-    format: String,
-    default: undefined
-  },
-  credentials: {
-    client: {
-      id: {
-        doc: "Client ID value obtained from auth provider for use with APIs",
-        format: String,
-        sensitive: true,
-        default: undefined // We can pull from ENV variables if possible
+const SCHEMA = function(isClientCredentialsConfig) {
+  return {
+    callbackUrl: {
+      doc: "Callback url to be used during the OAuth flow",
+      format: String,
+      default: undefined
+    },
+    credentials: {
+      client: {
+        id: {
+          doc: "Client ID value obtained from auth provider for use with APIs",
+          format: String,
+          sensitive: true,
+          default: undefined // We can pull from ENV variables if possible
+        },
+        secret: {
+          doc: "Client Secret value obtained from auth provider for use with APIs",
+          format: String,
+          sensitive: true,
+          default: undefined // We can pull from ENV variables if possible
+        }
       },
-      secret: {
-        doc: "Client Secret value obtained from auth provider for use with APIs",
-        format: String,
-        sensitive: true,
-        default: undefined // We can pull from ENV variables if possible
+      auth: getAuthSchema(isClientCredentialsConfig),
+      options: {
+        authorizationMethod: {
+          doc: "Indicates the method used to send client ID and Secret. Valid options are header or body. Defaults to header.",
+          format: String,
+          default: undefined
+        }
       }
     },
-    auth: {
-      authorizeHost: {
-        doc: "Base host url for OAuth2 authorization",
+    authorizeUrl: {
+      redirect_uri: {
+        doc: "Fully qualified url for redirect following successful OAuth authorization",
         format: String,
         default: undefined
       },
-      authorizePath: {
-        doc: "Path on base authorizeHost domain for authorization",
-        format: String,
-        default: undefined
-      },
-      tokenHost: {
-        doc: "Base host url for getting OAuth2 access tokens",
-        format: String,
-        default: undefined
-      },
-      tokenPath: {
-        doc: "Path on base tokenHost domain for retrieving access tokens",
-        format: String,
-        default: undefined
-      }
-    },
-    options: {
-      authorizationMethod: {
-        doc: "Indicates the method used to send client ID and Secret. Valid options are header or body. Defaults to header.",
+      scope: {
+        doc: "Authorization scope being requested from the OAuth provider",
         format: String,
         default: undefined
       }
+    },
+    innerAuthorization: {
+      url: {
+        doc: "Fully qualified url for inner authorization request made during refresh",
+        format: String,
+        default: undefined
+      },
+      removeCredentials: {
+        doc: "Whether or not tokens should be removed in case of inner authorization failure",
+        format: "Boolean",
+        default: undefined
+      },
+      headers: {
+        doc: "Optional headers used to request innerAuthorization.url",
+        format: Object,
+        default: undefined
+      },
+      method: {
+        doc: "Optional http method used to request innerAuthorization.url",
+        format: String,
+        default: undefined
+      },
+    },
+    tokenConfig: {
+      scope: {
+        doc: "Authorization scope being requested from the OAuth provider",
+        format: String,
+        default: undefined
+      }
+    },
+    credentialKeys: {
+      clientId: {
+        doc: "Client ID key to match from ENV variables",
+        format: String,
+        default: undefined
+      },
+      clientSecret: {
+        doc: "Client Secret key to match from ENV variables",
+        format: String,
+        default: undefined
+      },
     }
-  },
-  authorizeUrl: {
-    redirect_uri: {
-      doc: "Fully qualified url for redirect following successful OAuth authorization",
+  }
+};
+
+function getAuthSchema(isClientCredentialsConfig) {
+  const authorizationProperties = {
+    authorizeHost: {
+      doc: "Base host url for OAuth2 authorization",
       format: String,
       default: undefined
     },
-    scope: {
-      doc: "Authorization scope being requested from the OAuth provider",
-      format: String,
-      default: undefined
-    }
-  },
-  innerAuthorization: {
-    url: {
-      doc: "Fully qualified url for inner authorization request made during refresh",
-      format: String,
-      default: undefined
-    },
-    removeCredentials: {
-      doc: "Whether or not tokens should be removed in case of inner authorization failure",
-      format: "Boolean",
-      default: undefined
-    },
-    headers: {
-      doc: "Optional headers used to request innerAuthorization.url",
-      format: Object,
-      default: undefined
-    },
-    method: {
-      doc: "Optional http method used to request innerAuthorization.url",
-      format: String,
-      default: undefined
-    },
-  },
-  tokenConfig: {
-    scope: {
-      doc: "Authorization scope being requested from the OAuth provider",
-      format: String,
-      default: undefined
-    }
-  },
-  credentialKeys: {
-    clientId: {
-      doc: "Client ID key to match from ENV variables",
-      format: String,
-      default: undefined
-    },
-    clientSecret: {
-      doc: "Client Secret key to match from ENV variables",
+    authorizePath: {
+      doc: "Path on base authorizeHost domain for authorization",
       format: String,
       default: undefined
     },
   }
-};
+  return {
+    ...(isClientCredentialsConfig ? {} : authorizationProperties),
+    tokenHost: {
+      doc: "Base host url for getting OAuth2 access tokens",
+      format: String,
+      default: undefined
+    },
+    tokenPath: {
+      doc: "Path on base tokenHost domain for retrieving access tokens",
+      format: String,
+      default: undefined
+    }
+  }
+}
 
-module.exports.createConfig = (configuration) => {
-  const config = convict(SCHEMA);
+module.exports.createConfig = (configuration, isClientCredentialsConfig) => {
+  const config = convict(SCHEMA(isClientCredentialsConfig));
   config.load(configuration);
   let clientIdKey = config.has('credentialKeys.clientId') ? config.get('credentialKeys.clientId') : 'CLIENT_ID';
   if (!(_.get(process.env, clientIdKey))) {

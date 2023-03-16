@@ -13,11 +13,11 @@ exports.createOAuth = function(configuration) {
   let paths = {};
 
   if (authorizationCodeSettings) {
-    paths = authorizationCode.initHandler(createConfig(authorizationCodeSettings));
+    paths = authorizationCode.initHandler(createConfig(authorizationCodeSettings, false));
   }
 
   if (clientCredentialsSettings) {
-    paths = Object.assign(paths, clientCredentials.initHandler(createConfig(clientCredentialsSettings)));
+    paths = Object.assign(paths, clientCredentials.initHandler(createConfig(clientCredentialsSettings, true)));
   }
 
   return createHandler(paths);
