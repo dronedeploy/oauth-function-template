@@ -52,3 +52,11 @@ Release 1.7.8
 Release 1.7.9
 - Changes
   - Added additional error logging
+
+Release 2.0.0
+- Changes
+  - Upgraded simple-oauth2 from 2.5.2 to 5.0.0
+  - Upgraded lodash from ^4.17.15 to 4.17.21
+  - Upgraded node fetch from ^2.6.7 to 2.6.9
+  - Upgraded @dronedeploy/function-wrapper from 1.3.3 to 1.3.4
+  - Upgraded versions @dronedeploy/oauth-function-template, @dronedeploy/dronedeploy-cli and dotenv in template/package.json
